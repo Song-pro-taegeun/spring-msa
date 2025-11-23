@@ -1,0 +1,32 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.4.12' apply false // 이 플러그인을 적용하지는 않지만 미리 가져다 놓는다.
+	id 'io.spring.dependency-management' version '1.1.7' apply false // 이 플러그인을 적용하지는 않지만 미리 가져다 놓는다.
+}
+
+allprojects {
+	group = 'com.msa'
+	version = '0.0.1-SNAPSHOT'
+
+	repositories {
+		mavenCentral()
+	}
+}
+
+// 여기 있는 내용은 모든 서브모듈에 자동 적용됨
+subprojects {
+	apply plugin: 'java'
+	apply plugin: 'io.spring.dependency-management'
+
+	configurations {
+		compileOnly {
+			extendsFrom annotationProcessor
+		}
+	}
+
+	dependencies {
+		compileOnly 'org.projectlombok:lombok'
+		annotationProcessor 'org.projectlombok:lombok'
+		testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	}
+}

@@ -1,0 +1,2 @@
+jwt:
+  secret: "abcdefghijklmnopqrstuvwxyz0123456789"

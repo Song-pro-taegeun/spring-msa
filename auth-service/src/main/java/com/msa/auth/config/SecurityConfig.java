@@ -3,14 +3,11 @@ import com.msa.auth.security.CustomAccessDeniedHandler;
 import com.msa.auth.security.CustomAuthenticationEntryPoint;
 import com.msa.auth.security.JwtAuthenticationFilter;
 import com.msa.auth.security.CustomUserDetailService;
-import com.msa.auth.util.GlobalExceptionHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,13 +22,16 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler; // 403 핸들러 추가
     private final CustomAuthenticationEntryPoint authenticationEntryPoint; // 401 핸들러 추가
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final GlobalExceptionHandler globalExceptionHandler;
 
-    private final String[] PERMIT_URL_ARRAY_SWAGGER = {};
+    private final String[] PERMIT_URL_ARRAY_SWAGGER = {
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/webjars/**"
+    };
 
     private final String[] PERMIT_API_ARRAY_SWAGGER = {
-            "/auth/signUp",
-            "/auth/login"
+            "/auth/**"
     };
 
     @Bean

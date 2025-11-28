@@ -1,6 +1,5 @@
 package com.msa.auth;
 
-import com.msa.common.dto.TestDto;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -9,9 +8,5 @@ public class AuthServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(AuthServiceApplication.class, args);
         System.out.println("----------------Auth Service Start----------------");
-
-
-        TestDto dto = new TestDto("Taegun", 29);
-        System.out.println(dto.getAge());
     }
 }

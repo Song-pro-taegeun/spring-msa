@@ -27,13 +27,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = extractToken(request);
 
-        if (token != null && jwtUtil.validateToken(token)) {
+        if (jwtUtil.validateToken(token)) {
             String userId = jwtUtil.getUserId(token);
             CustomUserDetails userDetails = userDetailsService.loadUserByUsername(userId);
 
+            // JWT는 이미 토큰을 통해 사용자가 인증되었음을 간주함, 두번째 인자(credentials)가 null 인 이유는 서버에서 다시 비밀번호를 확인할 필요가 없음
             Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities()
-            );
+                    userDetails, null, userDetails.getAuthorities());
+
             SecurityContext securityContext = SecurityContextHolder.getContext();
             securityContext.setAuthentication(authentication);
         }

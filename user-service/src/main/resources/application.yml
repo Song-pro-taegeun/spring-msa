@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: user-service
+  profiles:
+    include: "db, common"
+
+server:
+  port: 8082
+  servlet:
+    context-path: "/api/user-service" #base-url

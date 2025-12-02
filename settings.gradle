@@ -2,3 +2,4 @@ rootProject.name = 'shop'
 
 include 'common-lib'
 include 'auth-service'
+include 'user-service'

@@ -1,0 +1,21 @@
+spring:
+  jpa:
+    open-in-view: false
+    generate-ddl: false
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: true
+    show-sql: true
+  datasource:
+    password: ${spring.db.password}
+    url: ${spring.db.url}
+    username: ${spring.db.username}
+    driver-class-name: org.mariadb.jdbc.Driver
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: OFF

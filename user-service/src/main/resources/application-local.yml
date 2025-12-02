@@ -1,0 +1,8 @@
+spring:
+  config:
+    activate:
+      on-profile: "local"
+  db:
+    url: "jdbc:mariadb://localhost:3306/msa_user"
+    username: "msa_user_user"
+    password: "1234"

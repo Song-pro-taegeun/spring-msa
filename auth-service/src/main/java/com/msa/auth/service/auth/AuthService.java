@@ -1,4 +1,4 @@
-package com.msa.auth.service;
+package com.msa.auth.service.auth;
 
 import com.msa.auth.dto.AuthRequestDto;
 import com.msa.auth.entity.Users;
@@ -9,6 +9,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -46,5 +49,10 @@ public class AuthService {
         }
 
         return jwtUtil.generateToken(user.getUserNo(), user.getUserId(), user.getUserRole());
+    }
+
+    @Transactional
+    public List<Users> getAuthSchemaUsers() {
+        return userRepository.findAll();
     }
 }

@@ -19,6 +19,12 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
 
     @Override
     public Connection getConnection(String tenant) throws SQLException {
+        // 1. 데이터 소스에 테넌트 키가 있으면 아무런 작업을 하지 않고 기존에 존재하는 Key의 Value를 리턴
+        // 2. 없으면 함수 호출
+        // - 서비스 시작 시 기본 데이터 소스는 getAnyConnection()를 통해 msa_auth로 할당
+        // - DataSource 에 등록 되어 있음
+        // - 등록된 키는 함수를 호출하지 않음
+        // 3. 즉 msa_user로 첫 요청 시에는 해당 키가 없기 때문에, createDataSource 를 실행하게 됨.
         DataSource ds = dataSources.computeIfAbsent(
                 tenant,
                 this::createDataSource
@@ -29,8 +35,13 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
     private DataSource createDataSource(String tenant) {
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl("jdbc:mariadb://localhost:3306/" + tenant);
-        ds.setUsername("msa_auth_user");
-        ds.setPassword("1234");
+        if (tenant.contains("msa_user")) {
+            ds.setUsername("msa_user_user");
+            ds.setPassword("1234");
+        } else {
+            ds.setUsername("msa_auth_user");
+            ds.setPassword("1234");
+        }
         return ds;
     }
 

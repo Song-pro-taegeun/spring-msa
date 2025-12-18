@@ -2,16 +2,20 @@ package com.msa.auth.controller;
 
 import com.msa.auth.dto.AuthRequestDto;
 import com.msa.auth.dto.AuthResponseDto;
-import com.msa.auth.service.AuthService;
+import com.msa.auth.facade.AuthFacadeService;
+import com.msa.auth.service.auth.AuthService;
+import com.msa.tenant.config.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+    private final AuthFacadeService authFacadeService;
     private final AuthService authService;
 
     @PostMapping("/signUp")
@@ -26,5 +30,16 @@ public class AuthController {
         return ResponseEntity.ok(
                 new AuthResponseDto(authService.login(userId, password))
         );
+    }
+
+
+    @GetMapping("/test")
+    public String test() {
+        return TenantContext.get();
+    }
+
+    @GetMapping("/user")
+    public void getUsers(){
+        authFacadeService.getUsers();
     }
 }

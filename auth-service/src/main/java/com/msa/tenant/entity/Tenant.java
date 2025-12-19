@@ -1,34 +1,33 @@
 package com.msa.tenant.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "tenants")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 public class Tenant {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "TENANT_ID")
     private Long id;
 
-    @Column(name = "tenant_key", unique = true, nullable = false)
+    @Column(name = "TENANT_KEY", nullable = false, unique = true, length = 50)
     private String tenantKey;
 
-    @Column(nullable = false)
+    @Column(name = "STATUS", nullable = false)
     private String status;
-
-    public Tenant(String tenantKey, String status) {
-        this.tenantKey = tenantKey;
-        this.status = status;
-    }
 
     public void activate() {
         this.status = "ACTIVE";
     }
-
     public void fail() {
         this.status = "FAILED";
     }

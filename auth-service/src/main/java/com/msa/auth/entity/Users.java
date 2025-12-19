@@ -21,6 +21,9 @@ public class Users {
     @Column(name = "USER_NO")
     private Long userNo;
 
+    @Column(name = "TENANT_KEY", nullable = false, unique = true, length = 50)
+    private String tenantKey;
+
     @Column(name = "USER_ID")
     private String userId; // 사용자 ID
 

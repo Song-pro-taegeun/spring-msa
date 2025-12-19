@@ -2,8 +2,12 @@ package com.msa.auth.service.auth;
 
 import com.msa.auth.dto.AuthRequestDto;
 import com.msa.auth.entity.Users;
+import com.msa.auth.kafka.producer.AuthEventProducer;
 import com.msa.auth.repository.UsersRepository;
 import com.msa.auth.util.JwtUtil;
+import com.msa.common.kafka_event.UserCreatedEvent;
+import com.msa.tenant.entity.Tenant;
+import com.msa.tenant.service.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -12,21 +16,34 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
 public class AuthService {
     private final UsersRepository userRepository;
+    private final TenantRepository tenantRepository;
+    private final AuthEventProducer authEventProducer;
+
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
+    @Transactional
     public void signUp(AuthRequestDto request){
         if (userRepository.findByUserId(request.getUserId()).isPresent()) {
             throw new DuplicateKeyException("아이디 중복");
         }
 
+        String tenantKey = UUID.randomUUID().toString();
+        Tenant tenant = Tenant.builder()
+                .tenantKey(tenantKey)
+                .build();
+        tenant.activate();
+        Tenant savedTenant = tenantRepository.save(tenant);
+
         Users user = Users.builder()
                 .userId(request.getUserId())
+                .tenantKey(tenant.getTenantKey()) // 테넌트 키 기입
                 .userPwd(passwordEncoder.encode(request.getUserPwd()))
                 .userName(request.getUserName())
                 .userPhone(request.getUserPhone())
@@ -35,7 +52,16 @@ public class AuthService {
                 .userRole("ROLE_USER") // 회원가입시 시큐리티 권한은 ROLE_USER
                 .build();
 
-        userRepository.save(user);
+        Users savedUser = userRepository.save(user);
+        UserCreatedEvent event = UserCreatedEvent.builder()
+                .tenantKey(savedTenant.getTenantKey())   // 있으면
+                .userId(savedUser.getUserId())
+                .userName(savedUser.getUserName())
+                .regDtm(String.valueOf(savedUser.getRegDtm()))
+                .build();
+
+        // Kafka 이벤트 발행
+         authEventProducer.publishUserCreated(event);
     }
 
     public String login(String userId, String password){

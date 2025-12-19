@@ -3,6 +3,7 @@ package com.msa.tenant.config;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -19,10 +20,11 @@ import java.util.Map;
 // Spring에게 멀티테넌시를 사용한다는 걸 공유하기 위한 설정
 @Configuration
 @EnableJpaRepositories(
-        basePackages = "com.msa.auth.repository",
+        basePackages = "com.msa",
         entityManagerFactoryRef = "entityManagerFactory",
         transactionManagerRef = "transactionManager"
 )
+@EntityScan(basePackages = "com.msa")
 public class MultiTenantJpaConfig {
 
     // 멀티테넌트 커넥션 공급자 등록

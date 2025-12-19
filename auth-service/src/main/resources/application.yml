@@ -2,7 +2,7 @@ spring:
   application:
     name: auth-service
   profiles:
-    include: "db, common"
+    include: "common"
 
 server:
   port: 8081

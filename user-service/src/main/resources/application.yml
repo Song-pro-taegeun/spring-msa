@@ -2,7 +2,7 @@ spring:
   application:
     name: user-service
   profiles:
-    include: "db, common"
+    include: "common"
 
 server:
   port: 8082

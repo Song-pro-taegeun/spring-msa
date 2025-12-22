@@ -1,4 +1,5 @@
 package com.msa.user.config;
+import com.msa.tenant.config.TenantFilter;
 import com.msa.user.security.CustomAccessDeniedHandler;
 import com.msa.user.security.CustomAuthenticationEntryPoint;
 import com.msa.user.security.JwtAuthenticationFilter;
@@ -44,7 +45,15 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler) // 403 예외 핸들러 적용
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // JWT 필터 적용
+                // Filter between이 되지 않기에 jwtAuthenticationFilter를 기준으로 앞 뒤에 필터 세팅 진행
+                // UsernamePasswordAuthenticationFilter가 실행되기 전에 jwtAuthenticationFilter를 실행시켜라
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // JWT 필터 적용
+
+                // JwtAuthenticationFilter가 실행된 뒤에 TenantFilter를 실행시켜라
+                // 필터 순서: JwtAuthenticationFilter
+                //           -> TenantFilter
+                //           -> UsernamePasswordAuthenticationFilter
+                .addFilterAfter(tenantFilter(), JwtAuthenticationFilter.class);
         return http.build();
     }
 
@@ -55,5 +64,10 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         // JWT 기반이라 사실 AuthenticationManager 필요 없음
         return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public TenantFilter tenantFilter() {
+        return new TenantFilter();
     }
 }

@@ -16,13 +16,13 @@ public class Tenant {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "TENANT_ID")
+    @Column(name = "tenant_id")
     private Long id;
 
-    @Column(name = "TENANT_KEY", nullable = false, unique = true, length = 50)
+    @Column(name = "tenant_key", nullable = false, unique = true, length = 50)
     private String tenantKey;
 
-    @Column(name = "STATUS", nullable = false)
+    @Column(name = "status", nullable = false)
     private String status;
 
     public void activate() {

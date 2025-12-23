@@ -32,12 +32,6 @@ public class AuthController {
         );
     }
 
-
-    @GetMapping("/test")
-    public String test() {
-        return TenantContext.get();
-    }
-
     @GetMapping("/user")
     public void getUsers(){
         authFacadeService.getUsers();

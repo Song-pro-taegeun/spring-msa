@@ -10,7 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "USERS")
+@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,31 +18,34 @@ import java.time.LocalDateTime;
 public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "USER_NO")
+    @Column(name = "user_no")
     private Long userNo;
 
-    @Column(name = "USER_ID")
+    @Column(name = "tenant_key", nullable = false, unique = true, length = 50)
+    private String tenantKey;
+
+    @Column(name = "user_id")
     private String userId; // 사용자 ID
 
-    @Column(name = "USER_PWD")
+    @Column(name = "user_pwd")
     private String userPwd; // 비밀번호
 
-    @Column(name = "USER_NAME")
+    @Column(name = "user_name")
     private String userName; // 사용자 이름
 
-    @Column(name = "USER_PHONE")
+    @Column(name = "user_phone")
     private String userPhone; // 전화번호
 
-    @Column(name = "USER_ADDR")
+    @Column(name = "user_addr")
     private String userAddr; // 주소
 
-    @Column(name = "USER_ADDR_DETAIL")
+    @Column(name = "usere_addr_detail")
     private String userAddrDetail; // 상세 주소
 
     @CreationTimestamp
-    @Column(name = "REG_DTM")
+    @Column(name = "reg_dtm")
     private LocalDateTime regDtm; // 등록일자 (자동 생성)
 
-    @Column(name = "USER_ROLE", nullable = false)
+    @Column(name = "user_role", nullable = false)
     private String userRole; // 시큐리티 유저 권한;
 }

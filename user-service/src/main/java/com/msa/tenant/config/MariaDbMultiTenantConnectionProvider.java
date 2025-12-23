@@ -35,15 +35,17 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
     private DataSource createDataSource(String tenant) {
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl("jdbc:mariadb://localhost:3306/" + tenant);
-        ds.setUsername("msa_auth_user");
-        ds.setPassword("1234");
+        if (tenant.contains("msa_user")) {
+            ds.setUsername("msa_user_user");
+            ds.setPassword("1234");
+        }
         return ds;
     }
 
     // 테넌트가 할당되지 않았을 때 기본으로 사용하는 스키마
     @Override
     public Connection getAnyConnection() throws SQLException {
-        return getConnection("msa_auth");
+        return getConnection("msa_user");
     }
 
     @Override public void releaseConnection(String t, Connection c) throws SQLException { c.close(); }

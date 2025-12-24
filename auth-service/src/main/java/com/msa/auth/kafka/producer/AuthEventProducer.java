@@ -6,8 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-// 카프카 발행순서 3
-// Kafka 실제 전송 영역
+/**
+ * Kafka 발행순서 3
+ * Kafka 실제 전송 영역
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

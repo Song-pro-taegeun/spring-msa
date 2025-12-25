@@ -24,12 +24,16 @@ public class AuthFacadeService {
     private final UserService userService;
 
     public void getUsers(){
-        TenantContext.set("msa_auth");
-        List<Users> authUsers = authService.getAuthSchemaUsers();
-        log.info(authUsers.toString());
+        try{
+            TenantContext.set("msa_auth");
+            List<Users> authUsers = authService.getAuthSchemaUsers();
+            log.info(authUsers.toString());
 
-        TenantContext.set("msa_user");
-        List<Users> userUsers = userService.getUserSchemaUsers();
-        log.info(userUsers.toString());
+            TenantContext.set("msa_user");
+            List<Users> userUsers = userService.getUserSchemaUsers();
+            log.info(userUsers.toString());
+        }finally {
+            TenantContext.clear();
+        }
     }
 }

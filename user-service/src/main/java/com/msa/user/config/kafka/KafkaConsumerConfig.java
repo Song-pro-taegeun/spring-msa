@@ -44,4 +44,26 @@ public class KafkaConsumerConfig {
 
         return factory;
     }
+
+    /**
+     * DLQ 전용 Kafka Listener 컨테이너를 만들어준다
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> dlqPersistKafkaListenerContainerFactory(
+            ConsumerFactory<String, Object> consumerFactory
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+
+        factory.setConsumerFactory(consumerFactory);
+
+        // 수동 ack 유지
+        factory.getContainerProperties()
+                .setAckMode(ContainerProperties.AckMode.MANUAL);
+
+        // DLQ ErrorHandler 미설정
+        factory.setCommonErrorHandler(null);
+
+        return factory;
+    }
 }

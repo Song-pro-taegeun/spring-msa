@@ -24,6 +24,3 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 프로듀서에선 직렬화
       properties:
         enable.idempotence: true # Producer 재시도 시 중복 메시지 방지
-    dlq:
-      replay:
-        enabled: false # dlq를 다시 돌리고 싶을 때 true로 변경

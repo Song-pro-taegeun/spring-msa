@@ -1,6 +1,5 @@
 package com.msa.user.config.kafka;
 
-import jakarta.validation.Valid;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

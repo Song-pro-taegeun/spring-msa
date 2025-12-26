@@ -61,34 +61,42 @@ public class AuthService {
                 .regDtm(String.valueOf(savedUser.getRegDtm()))
                 .build();
 
-        // 트랜잭션 저장이 끝난 후 이벤트를 발행해야 하므로 내부 이벤트 발행 로직을 추가
-        // Kafka를 직접 호출하지 않고, eventPublisher.publishEvent()로 Spring 내부 이벤트를 발행
-        // publishEvent() 자체는 즉시 Kafka를 보내는 함수가 아니라, 이 트랜잭션이 커밋되면 그때 동작하는 hook임
+        /**
+         * 트랜잭션 저장이 끝난 후 이벤트를 발행해야 하므로 내부 이벤트 발행 로직을 추가
+         * Kafka를 직접 호출하지 않고, eventPublisher.publishEvent()로 Spring 내부 이벤트를 발행
+         * publishEvent() 자체는 즉시 Kafka를 보내는 함수가 아니라, 이 트랜잭션이 커밋되면 그때 동작하는 hook임
+         */
         eventPublisher.publishEvent(
                 new UserCreatedInternalEvent(event)
         );
 
-        // 테스트
-        // 동기적으로 publishEvent 메써드 까지 호출(리스너를 실행하지 않음 이벤트를 등록)
-        // Exception 강제 발생 시 UserCreatedEventListener 까지 전달 되지 않음(@TransactionalEventListener 관련 어노테이션으로 인해)
-        // publishEvent()는 트랜잭션에 이벤트를 등록 하는 역할(해당 이벤트를 트랜잭션에 걸어둘 뿐)
-        // 즉, 로직 도중 트랜잭션이 롤백 되면 리스너는 절대 실행되지 않음
-        // publishEvent() -> 트랜잭션에 걸어두고 -> Spring 내부에서 현재 활성 트랜잭션이 있는지 확인
-        // -> 트랜잭션이 있다면, 이벤트를 TransactionSynchronizationManager에 등록, 없다면 fallback 옵션에 따라 즉시 실행 여부를 결정
+        /**
+         * 테스트
+         * 동기적으로 publishEvent 메써드 까지 호출(리스너를 실행하지 않음 이벤트를 등록)
+         * Exception 강제 발생 시 UserCreatedEventListener 까지 전달 되지 않음(@TransactionalEventListener 관련 어노테이션으로 인해)
+         * publishEvent()는 트랜잭션에 이벤트를 등록 하는 역할(해당 이벤트를 트랜잭션에 걸어둘 뿐)
+         * 즉, 로직 도중 트랜잭션이 롤백 되면 리스너는 절대 실행되지 않음
+         * publishEvent() -> 트랜잭션에 걸어두고 -> Spring 내부에서 현재 활성 트랜잭션이 있는지 확인
+         *      -> 트랜잭션이 있다면, 이벤트를 TransactionSynchronizationManager에 등록, 없다면 fallback 옵션에 따라 즉시 실행 여부를 결정
+         *
+         */
         // throw new RuntimeException();
 
-        // NextStep!!!!
-        // Outbox Pattern은 도입하여 이벤트 발생 시 이벤트를 저장하는 테이블과 로직을 저장 필요
-        // kafka 장애 시 대응 가능
-        // 사용 케이스 : 결제 / 주문 / 회원생성 등 데이터 유실이 절대적으로 허용되면 안되는 경우
-        // Outbox Pattern은 Producer 단위 이벤트 유실 방지 용도
-        // Outbox Pattern 도입 예시 케이스
-            // user insert -> 트랜잭션 커밋 성공
-            // 이후 서버 크래시 발생 (kafka send 호출 전/중)
-            // -> Auth DB엔 유저가 존재하지만 Kafka 이벤트는 유실될 수 있음
-            // 이를 방지하기 위해, 비즈니스 데이터와 이벤트를 같은 트랜잭션으로 DB에 먼저 저장하고,
-            // 서버 재시작 후에도 DB에 남아 있는 이벤트를 기반으로
-            // Kafka 발행을 재시도하기 위함
+
+        /**
+         * NextStep!!!!
+         * Outbox Pattern은 도입하여 이벤트 발생 시 이벤트를 저장하는 테이블과 로직을 저장 필요
+         * kafka 장애 시 대응 가능
+         * 사용 케이스 : 결제 / 주문 / 회원생성 등 데이터 유실이 절대적으로 허용되면 안되는 경우
+         * Outbox Pattern은 Producer 단위 이벤트 유실 방지 용도
+         * Outbox Pattern 도입 예시 케이스
+         *    user insert -> 트랜잭션 커밋 성공
+         *    이후 서버 크래시 발생 (kafka send 호출 전/중)
+         *      -> Auth DB엔 유저가 존재하지만 Kafka 이벤트는 유실될 수 있음
+         *    이를 방지하기 위해, 비즈니스 데이터와 이벤트를 같은 트랜잭션으로 DB에 먼저 저장하고,
+         *    서버 재시작 후에도 DB에 남아 있는 이벤트를 기반으로
+         *    Kafka 발행을 재시도하기 위함
+         */
     }
 
     public String login(String userId, String password){

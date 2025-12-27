@@ -35,7 +35,9 @@ public class AuthService {
             throw new DuplicateKeyException("아이디 중복");
         }
 
-        String tenantKey = UUID.randomUUID().toString();
+        String uuId = UUID.randomUUID().toString();
+        String tenantKey = uuId.replace("-", "_"); // 스키마 생성 시 uuid로 생성하는데, "-" 해당 텍스트를 포함할 수 없음
+
         Tenant tenant = Tenant.builder()
                 .tenantKey(tenantKey)
                 .build();

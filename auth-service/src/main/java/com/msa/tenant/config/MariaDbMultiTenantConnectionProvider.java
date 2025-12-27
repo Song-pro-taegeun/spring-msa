@@ -35,7 +35,7 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
     private DataSource createDataSource(String tenant) {
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl("jdbc:mariadb://localhost:3306/" + tenant);
-        ds.setUsername("msa_auth_user");
+        ds.setUsername("root");
         ds.setPassword("1234");
         return ds;
     }

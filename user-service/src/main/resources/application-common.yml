@@ -23,3 +23,5 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 프로듀서에선 직렬화
       properties:
         enable.idempotence: true # Producer 재시도 시 중복 메시지 방지
+  flyway:
+    enabled: false # 어플리케이션 부팅 시 Flyway 자동실행 막기

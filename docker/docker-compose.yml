@@ -45,6 +45,26 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092 # Kafka 브로커 연결 정보
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181 # Zookeeper 연결 정보
 
+  # mariaDB
+  mariadb:
+    image: mariadb:10.6
+    container_name: msa-mariadb
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: 1234
+      MARIADB_DATABASE: msa_auth
+      MARIADB_USER: msa_master
+      MARIADB_PASSWORD: 1234
+      TZ: Asia/Seoul
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+volumes:
+  mariadb-data:
 
   # # Redis Stack
   # redis-stack:

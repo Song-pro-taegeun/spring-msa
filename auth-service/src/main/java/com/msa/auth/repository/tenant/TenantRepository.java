@@ -1,6 +1,6 @@
-package com.msa.tenant.service;
+package com.msa.auth.repository.tenant;
 
-import com.msa.tenant.entity.Tenant;
+import com.msa.auth.entity.tenant.Tenant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

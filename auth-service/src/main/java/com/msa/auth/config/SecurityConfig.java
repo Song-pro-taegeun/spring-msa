@@ -3,7 +3,6 @@ import com.msa.auth.security.CustomAccessDeniedHandler;
 import com.msa.auth.security.CustomAuthenticationEntryPoint;
 import com.msa.auth.security.JwtAuthenticationFilter;
 import com.msa.auth.security.CustomUserDetailService;
-import com.msa.tenant.config.TenantFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,15 +52,7 @@ public class SecurityConfig {
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
-                // Filter between이 되지 않기에 jwtAuthenticationFilter를 기준으로 앞 뒤에 필터 세팅 진행
-                // UsernamePasswordAuthenticationFilter가 실행되기 전에 jwtAuthenticationFilter를 실행시켜라
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // JWT 필터 적용
-
-                // JwtAuthenticationFilter가 실행된 뒤에 TenantFilter를 실행시켜라
-                // 필터 순서: JwtAuthenticationFilter
-                //           -> TenantFilter
-                //           -> UsernamePasswordAuthenticationFilter
-                .addFilterAfter(tenantFilter(), JwtAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // JWT 필터 적용
         return http.build();
     }
 
@@ -76,10 +67,5 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public TenantFilter tenantFilter() {
-        return new TenantFilter();
     }
 }

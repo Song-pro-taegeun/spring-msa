@@ -6,6 +6,9 @@ logging:
   level:
     org.hibernate.orm.connections.pooling: OFF
 
+crypto:
+  master-key: "Qz1pY5n2yMZ2Rr5Z0y4sR0b7hQy+0kK1zG1cZxZQm1M="
+
 spring:
   kafka:
     bootstrap-servers: ${kafka.host-port}  # Kafka 서버 주소
@@ -24,3 +27,8 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 프로듀서에선 직렬화
       properties:
         enable.idempotence: true # Producer 재시도 시 중복 메시지 방지
+
+service-name:
+  auth: msa_auth
+  user: msa_user
+

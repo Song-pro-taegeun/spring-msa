@@ -38,28 +38,20 @@ public class DlqPersistConsumer {
             Acknowledgment ack
     ) {
         DlqMessage<?> dlq = record.value();
-        String tenantKey = extractTenantKey(dlq); // 테넌트 스키마
-
         try {
-            // 환경변수의 baseSchemaName과 테넌트 키의 조합으로 스키마를 선택
-            TenantContext.set(baseSchemaName + "_" + tenantKey);
+            // 오류 발생 시 msa_user 스키마에 DLQ 메시지 적재
+            TenantContext.set(baseSchemaName);
 
             // DB에 DLQ 정보 등록
             dlqService.persistDlq(dlq, record);
-
-            // Offset 전진
-            ack.acknowledge();
         } finally {
+            /**
+             * DB에 DLQ 저장 로직마저도 예외 및 오류가 발생한다면, 토픽을 추가로 발행하지 않고 추후 운영 알림으로 발행해야함.
+             * 해당 문제는 크리티컬한 운영 이슈로 로직에서 별도로 처리하지 않는다.
+             * DLQ Persist Consumer는 최종 소비자이기 떄문에 운영알림 후 Offset은 무조건 전진시킨다.
+             */
+            ack.acknowledge();
             TenantContext.clear();
-        }
-    }
-
-    private String extractTenantKey(DlqMessage<?> dlq) {
-        try {
-            UserCreatedEvent event = objectMapper.convertValue(dlq.getPayload(), UserCreatedEvent.class);
-            return event.getTenantKey();
-        } catch (IllegalArgumentException e) {
-            throw new IllegalStateException("Cannot extract tenantKey from DLQ payload", e);
         }
     }
 }

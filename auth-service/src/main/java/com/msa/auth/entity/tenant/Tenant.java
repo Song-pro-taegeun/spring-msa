@@ -1,4 +1,4 @@
-package com.msa.tenant.entity;
+package com.msa.auth.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

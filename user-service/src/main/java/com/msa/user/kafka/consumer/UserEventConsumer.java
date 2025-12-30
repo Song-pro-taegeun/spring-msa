@@ -1,7 +1,7 @@
 package com.msa.user.kafka.consumer;
 
 import com.msa.common.kafka_event.UserCreatedEvent;
-import com.msa.tenant.config.TenantContext;
+import com.msa.user.service.user.TenantSchemaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Component
 public class UserEventConsumer {
+    private final TenantSchemaService tenantSchemaService;
+
     /**
      * user-created 토픽을 구독
      */
@@ -27,12 +29,7 @@ public class UserEventConsumer {
     ) {
         try {
             UserCreatedEvent event = record.value();
-            // tenantKey 기반 멀티테넌시 설정
-            TenantContext.set(event.getTenantKey());
-            log.info("event: {}", event);
-            int a = 1;
-            int b = 0;
-            int c = a/b;
+            tenantSchemaService.provision(event);
 
             /**
              * ack.acknowledge()를 하지 않으면 어떤 현상이 발생하는가?(offset commit이 되지 않았을 때)
@@ -57,9 +54,7 @@ public class UserEventConsumer {
         } catch (Exception e) {
             UserCreatedEvent event = record.value();
             log.error("UserCreatedEvent 처리 실패: {}", event, e);
-            throw e; // ErrorHandler → retry / DLQ
-        } finally {
-            TenantContext.clear();
+            throw e; // ErrorHandler -> retry / DLQ
         }
     }
 }

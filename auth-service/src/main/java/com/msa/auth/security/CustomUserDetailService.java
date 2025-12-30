@@ -1,7 +1,7 @@
 package com.msa.auth.security;
 
-import com.msa.auth.entity.Users;
-import com.msa.auth.repository.UsersRepository;
+import com.msa.auth.entity.user.Users;
+import com.msa.auth.repository.user.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

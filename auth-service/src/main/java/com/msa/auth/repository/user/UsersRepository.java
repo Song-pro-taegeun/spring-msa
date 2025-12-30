@@ -1,6 +1,6 @@
-package com.msa.auth.repository;
+package com.msa.auth.repository.user;
 
-import com.msa.auth.entity.Users;
+import com.msa.auth.entity.user.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

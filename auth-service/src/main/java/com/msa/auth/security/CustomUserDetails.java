@@ -1,6 +1,6 @@
 package com.msa.auth.security;
 
-import com.msa.auth.entity.Users;
+import com.msa.auth.entity.user.Users;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

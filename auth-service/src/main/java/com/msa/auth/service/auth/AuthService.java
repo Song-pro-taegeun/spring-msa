@@ -1,14 +1,20 @@
 package com.msa.auth.service.auth;
 
+import com.msa.auth.crypto.DbCredentialCrypto;
+import com.msa.auth.crypto.EncryptionResult;
 import com.msa.auth.dto.AuthRequestDto;
-import com.msa.auth.entity.Users;
+import com.msa.auth.entity.tenant.CredentialStatus;
+import com.msa.auth.entity.tenant.TenantDbCredential;
+import com.msa.auth.entity.user.Users;
 import com.msa.auth.kafka.internal.UserCreatedInternalEvent;
-import com.msa.auth.repository.UsersRepository;
+import com.msa.auth.repository.tenant.TenantDbCredentialRepository;
+import com.msa.auth.repository.user.UsersRepository;
 import com.msa.auth.util.JwtUtil;
 import com.msa.common.kafka_event.UserCreatedEvent;
-import com.msa.tenant.entity.Tenant;
-import com.msa.tenant.service.TenantRepository;
+import com.msa.auth.entity.tenant.Tenant;
+import com.msa.auth.repository.tenant.TenantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -16,18 +22,22 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
 public class AuthService {
+    @Value("${service-name.user}")
+    private String userServiceName;
+
     private final ApplicationEventPublisher eventPublisher;
     private final UsersRepository userRepository;
     private final TenantRepository tenantRepository;
+    private final TenantDbCredentialRepository tenantDbCredentialRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final DbCredentialCrypto dbCredentialCrypto;
 
     @Transactional
     public void signUp(AuthRequestDto request){
@@ -38,12 +48,17 @@ public class AuthService {
         String uuId = UUID.randomUUID().toString();
         String tenantKey = uuId.replace("-", "_"); // 스키마 생성 시 uuid로 생성하는데, "-" 해당 텍스트를 포함할 수 없음
 
+        // 1. 테넌트 생성
         Tenant tenant = Tenant.builder()
                 .tenantKey(tenantKey)
                 .build();
         tenant.activate();
         Tenant savedTenant = tenantRepository.save(tenant);
 
+        // 2. tenant 별 DB credential 생성
+        createTenantDbCredential(savedTenant.getTenantKey(), userServiceName);
+
+        // 3. User 생성
         Users user = Users.builder()
                 .userId(request.getUserId())
                 .tenantKey(tenant.getTenantKey()) // 테넌트 키 기입
@@ -54,8 +69,9 @@ public class AuthService {
                 .userAddrDetail(request.getUserAddrDetail())
                 .userRole("ROLE_USER") // 회원가입시 시큐리티 권한은 ROLE_USER
                 .build();
-
         Users savedUser = userRepository.save(user);
+
+        // 4. 이벤트 발행
         UserCreatedEvent event = UserCreatedEvent.builder()
                 .tenantKey(savedTenant.getTenantKey())   // 있으면
                 .userId(savedUser.getUserId())
@@ -114,8 +130,29 @@ public class AuthService {
         return jwtUtil.generateToken(user.getUserNo(), user.getUserId(), user.getUserRole());
     }
 
-    @Transactional
-    public List<Users> getAuthSchemaUsers() {
-        return userRepository.findAll();
+    private void createTenantDbCredential(
+            String tenantId,
+            String serviceName
+    ) {
+        // 1. DB 계정명 생성 규칙
+        String username = serviceName + "_" + tenantId;
+
+        // 2. 랜덤 패스워드 생성
+        String rawPassword = UUID.randomUUID().toString().replace("-", "");
+
+        // 3. AES 암호화
+        EncryptionResult result = dbCredentialCrypto.encrypt(rawPassword);
+
+        // 4. 엔티티 생성
+        TenantDbCredential credential = TenantDbCredential.builder()
+                .tenantId(tenantId)
+                .serviceName(serviceName)
+                .username(username)
+                .passwordEnc(result.getEncrypted())
+                .encIv(result.getIv())
+                .status(CredentialStatus.ACTIVE)
+                .build();
+
+        tenantDbCredentialRepository.save(credential);
     }
 }

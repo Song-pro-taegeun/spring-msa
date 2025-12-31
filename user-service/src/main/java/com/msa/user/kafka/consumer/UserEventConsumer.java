@@ -1,10 +1,11 @@
 package com.msa.user.kafka.consumer;
 
-import com.msa.common.kafka_event.UserCreatedEvent;
+import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.user.service.user.TenantSchemaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -13,22 +14,31 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Component
 public class UserEventConsumer {
+    @Value("${spring.base-schema-name}")
+    private String serviceName;
     private final TenantSchemaService tenantSchemaService;
 
     /**
      * user-created 토픽을 구독
      */
     @KafkaListener(
-            topics = "user-created",
+            topics = "tenant-provision",
             groupId = "user-service",
             containerFactory = "kafkaListenerContainerFactory" // kafkaErrorHandler가 적용된 컨테이너팩토리, DLQ가 아닌 토픽은 모두 해당 컨테이너 팩토리를 사용해야한다.
     )
     public void consumeUserCreated(
-            ConsumerRecord<String, UserCreatedEvent> record,
+            ConsumerRecord<String, TenantProvisionedEvent> record,
             Acknowledgment ack // 수동 offset 커밋용 객체(Config에서 AckMode.MANUAL 설정일 때만 주입 됨)
     ) {
         try {
-            UserCreatedEvent event = record.value();
+            TenantProvisionedEvent event = record.value();
+
+            // 내 서비스가 아니면 리턴 (테넌트 프로비져닝 이벤트는 서비스별로 여러개의 메시지를 발행한다)
+            if (!serviceName.equals(event.getServiceName())) {
+                ack.acknowledge();
+                return;
+            }
+
             tenantSchemaService.provision(event);
 
             /**
@@ -52,7 +62,7 @@ public class UserEventConsumer {
              * DLQ는 Consumer 단위 이벤트 처리 실패 격리 용도
              */
         } catch (Exception e) {
-            UserCreatedEvent event = record.value();
+            TenantProvisionedEvent event = record.value();
             log.error("UserCreatedEvent 처리 실패: {}", event, e);
             throw e; // ErrorHandler -> retry / DLQ
         }

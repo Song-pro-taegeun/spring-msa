@@ -1,6 +1,6 @@
 package com.msa.user.service.user;
 
-import com.msa.common.kafka_event.UserCreatedEvent;
+import com.msa.common.kafka_event.TenantProvisionedEvent;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +17,6 @@ import java.sql.Statement;
 @Service
 public class TenantSchemaService {
     private final DataSource baseDataSource;
-    private static final String DB_HOST = "localhost";
     private static final String TENANT_PASSWORD = "1234";
 
     public TenantSchemaService(
@@ -35,7 +34,7 @@ public class TenantSchemaService {
     @Value("${spring.base-schema-name}")
     private String baseSchemaName;
 
-    public void provision(UserCreatedEvent event) {
+    public void provision(TenantProvisionedEvent event) {
         String tenantSchema = baseSchemaName + "_" + event.getTenantKey();
 
         // 1. tenant DB 유저 생성
@@ -152,7 +151,7 @@ public class TenantSchemaService {
      * @param tenantSchema
      * @param event
      */
-    private void insertInitialUser(String tenantSchema, UserCreatedEvent event) {
+    private void insertInitialUser(String tenantSchema, TenantProvisionedEvent event) {
         DataSource tenantDs = tenantDataSource(tenantSchema);
         try (
                 Connection conn = tenantDs.getConnection();

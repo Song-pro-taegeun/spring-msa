@@ -1,8 +1,6 @@
 package com.msa.user.kafka.dlq;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.kafka_event.DlqMessage;
-import com.msa.common.kafka_event.UserCreatedEvent;
 import com.msa.tenant.config.TenantContext;
 import com.msa.user.service.Dlq.DlqService;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +22,10 @@ public class DlqPersistConsumer {
     @Value("${spring.base-schema-name}")
     private String baseSchemaName;
 
-    private final ObjectMapper objectMapper;
     private final DlqService dlqService;
 
     @KafkaListener(
-            topics = "user-service.user-created.DLQ",
+            topics = "user-service.tenant-provision.DLQ",
             groupId = "user-service-dlq-persistor",
             containerFactory = "dlqPersistKafkaListenerContainerFactory" // DLQ 오류는 또 다른 DLQ 토픽을 만들지 않기 위해 새로운 컨테이너 팩토리를 구성하여 해당 팩토리를 빈으로 사용
     )

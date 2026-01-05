@@ -1,6 +1,7 @@
 package com.msa.user.service.user;
 
 import com.msa.common.kafka_event.TenantProvisionedEvent;
+import com.msa.user.crypto.DbCredentialCrypto;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,12 +18,15 @@ import java.sql.Statement;
 @Service
 public class TenantSchemaService {
     private final DataSource baseDataSource;
+    private final DbCredentialCrypto dbCredentialCrypto;
     private static final String TENANT_PASSWORD = "1234";
 
     public TenantSchemaService(
-            @Qualifier("baseDataSource") DataSource baseDataSource
+            @Qualifier("baseDataSource") DataSource baseDataSource,
+            DbCredentialCrypto dbCredentialCrypto
     ) {
         this.baseDataSource = baseDataSource;
+        this.dbCredentialCrypto = dbCredentialCrypto;
     }
 
     @Value("${spring.master-datasource.url}")
@@ -36,9 +40,10 @@ public class TenantSchemaService {
 
     public void provision(TenantProvisionedEvent event) {
         String tenantSchema = baseSchemaName + "_" + event.getTenantKey();
+        String password = dbCredentialCrypto.decrypt(event.getPasswordEnc(), event.getEncIv());
 
         // 1. tenant DB 유저 생성
-        createTenantUserIfNotExists(tenantSchema);
+        createTenantUserIfNotExists(tenantSchema, password);
 
         // 2. 스키마 생성
         createSchemaIfNotExists(tenantSchema);
@@ -50,16 +55,16 @@ public class TenantSchemaService {
         grantMasterPrivileges(tenantSchema);
 
         // 5. Flyway를 통한 마이그레이션 진행
-        runFlyway(tenantSchema);
+        runFlyway(tenantSchema, password);
 
         // 6. envent payload 데이터 추가
-        insertInitialUser(tenantSchema, event);
+        insertInitialUser(tenantSchema, event, password);
     }
 
     /**
      * tenant DB 유저 생성 (없으면)
      */
-    private void createTenantUserIfNotExists(String tenantSchema) {
+    private void createTenantUserIfNotExists(String tenantSchema, String password) {
         try (
             Connection conn = baseDataSource.getConnection();
             Statement stmt = conn.createStatement()) {
@@ -67,7 +72,7 @@ public class TenantSchemaService {
             stmt.execute("""
                 CREATE USER IF NOT EXISTS '%s'@'%%'
                 IDENTIFIED BY '%s'
-            """.formatted(tenantSchema, TENANT_PASSWORD));
+            """.formatted(tenantSchema, password));
 
         } catch (Exception e) {
             throw new IllegalStateException("Create DB user failed", e);
@@ -134,8 +139,8 @@ public class TenantSchemaService {
     /**
      * Flyway 마이그레이션 진행
      */
-    private void runFlyway(String tenantSchema) {
-        DataSource tenantDs = tenantDataSource(tenantSchema);
+    private void runFlyway(String tenantSchema, String password) {
+        DataSource tenantDs = tenantDataSource(tenantSchema, password);
         Flyway flyway = Flyway.configure()
                 .dataSource(tenantDs)
                 .schemas(tenantSchema)
@@ -151,8 +156,8 @@ public class TenantSchemaService {
      * @param tenantSchema
      * @param event
      */
-    private void insertInitialUser(String tenantSchema, TenantProvisionedEvent event) {
-        DataSource tenantDs = tenantDataSource(tenantSchema);
+    private void insertInitialUser(String tenantSchema, TenantProvisionedEvent event, String password) {
+        DataSource tenantDs = tenantDataSource(tenantSchema, password);
         try (
                 Connection conn = tenantDs.getConnection();
                 PreparedStatement ps = conn.prepareStatement("""
@@ -169,11 +174,11 @@ public class TenantSchemaService {
         }
     }
 
-    private DataSource tenantDataSource(String tenantSchema) {
+    private DataSource tenantDataSource(String tenantSchema, String password) {
         return DataSourceBuilder.create()
                 .url(baseJdbcUrl + tenantSchema)
                 .username(tenantSchema)
-                .password(TENANT_PASSWORD)
+                .password(password)
                 .build();
     }
 }

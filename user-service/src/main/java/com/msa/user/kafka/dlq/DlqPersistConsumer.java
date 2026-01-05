@@ -21,15 +21,13 @@ import org.springframework.stereotype.Component;
 public class DlqPersistConsumer {
     @Value("${spring.base-schema-name}")
     private String baseSchemaName;
-
     private final DlqService dlqService;
 
     @KafkaListener(
-            topics = "user-service.tenant-provision.DLQ",
+            topicPattern = "user-service\\..*\\.DLQ", // 토픽 이름을 고정하지 않고 패턴에 부합되는 모든 토픽은 동일한 컨슈머 사용
             groupId = "user-service-dlq-persistor",
             containerFactory = "dlqPersistKafkaListenerContainerFactory" // DLQ 오류는 또 다른 DLQ 토픽을 만들지 않기 위해 새로운 컨테이너 팩토리를 구성하여 해당 팩토리를 빈으로 사용
     )
-
     public void persist(
             ConsumerRecord<String, DlqMessage<?>> record,
             Acknowledgment ack

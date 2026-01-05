@@ -24,7 +24,7 @@ public class KafkaDlqConfig {
         return new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
                 (record, ex) ->
-                        new TopicPartition(serviceName + "." + record.topic() + ".DLQ", record.partition())
+                        new TopicPartition(serviceName + "." + record.topic() + ".DLQ", record.partition()) // DLQ 토픽 발행 동적 생성
         );
     }
 }

@@ -19,7 +19,6 @@ import java.sql.Statement;
 public class TenantSchemaService {
     private final DataSource baseDataSource;
     private final DbCredentialCrypto dbCredentialCrypto;
-    private static final String TENANT_PASSWORD = "1234";
 
     public TenantSchemaService(
             @Qualifier("baseDataSource") DataSource baseDataSource,
@@ -38,6 +37,19 @@ public class TenantSchemaService {
     @Value("${spring.base-schema-name}")
     private String baseSchemaName;
 
+    private static final String INSERT_TENANT_DB_CREDENTIAL_SQL = """
+    INSERT INTO msa_user.tenant_db_credential (
+        tenant_id,
+        service_name,
+        username,
+        password_enc,
+        enc_iv,
+        status
+    )
+    VALUES (?, ?, ?, ?, ?, 'ACTIVE')
+""";
+
+
     public void provision(TenantProvisionedEvent event) {
         String tenantSchema = baseSchemaName + "_" + event.getTenantKey();
         String password = dbCredentialCrypto.decrypt(event.getPasswordEnc(), event.getEncIv());
@@ -51,13 +63,16 @@ public class TenantSchemaService {
         // 3. 스키마에 테넌트 유저 권한 등록
         grantTenantPrivileges(tenantSchema);
 
-        // 4. master-datasource.username에 해당 테넌트 권한 부여
+        // 4. 마스터 스키마에 테넌트 별 DB 커넥션 계정 정보 넣기
+        insertTenantDbCredential(event, tenantSchema);
+
+        // 5. master-datasource.username에 해당 테넌트 권한 부여
         grantMasterPrivileges(tenantSchema);
 
-        // 5. Flyway를 통한 마이그레이션 진행
+        // 6. Flyway를 통한 마이그레이션 진행
         runFlyway(tenantSchema, password);
 
-        // 6. envent payload 데이터 추가
+        // 7. envent payload 데이터 추가
         insertInitialUser(tenantSchema, event, password);
     }
 
@@ -112,6 +127,29 @@ public class TenantSchemaService {
 
         } catch (Exception e) {
             throw new IllegalStateException("Grant privileges failed", e);
+        }
+    }
+
+    /**
+     *  마스터 스키마에 테넌트 별 DB 커넥션 계정 정보 넣기
+     */
+    private void insertTenantDbCredential(
+            TenantProvisionedEvent event,
+            String tenantSchema
+    ) {
+        try (
+                Connection conn = baseDataSource.getConnection();
+                PreparedStatement ps = conn.prepareStatement(INSERT_TENANT_DB_CREDENTIAL_SQL)
+        ) {
+            ps.setString(1, event.getTenantKey());
+            ps.setString(2, baseSchemaName);
+            ps.setString(3, tenantSchema);
+            ps.setBytes(4, event.getPasswordEnc());
+            ps.setBytes(5, event.getEncIv());
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to insert tenant_db_credential for tenantId=" + event.getTenantKey(), e);
         }
     }
 

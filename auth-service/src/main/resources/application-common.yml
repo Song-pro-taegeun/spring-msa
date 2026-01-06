@@ -31,6 +31,5 @@ spring:
 tenant:
   provision:
     services:
-      - msa_auth
       - msa_user
 

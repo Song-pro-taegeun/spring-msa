@@ -1,7 +1,7 @@
 package com.msa.user.service.user;
 
 import com.msa.common.kafka_event.TenantProvisionedEvent;
-import com.msa.user.crypto.DbCredentialCrypto;
+import com.msa.tenant.credential.crypto.DbCredentialCrypto;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;

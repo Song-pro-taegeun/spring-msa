@@ -1,5 +1,6 @@
 package com.msa.tenant.config;
 
+import com.msa.tenant.context.TenantIdentifierResolver;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;

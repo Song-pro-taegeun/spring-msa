@@ -1,5 +1,5 @@
 package com.msa.user.config;
-import com.msa.tenant.config.TenantFilter;
+import com.msa.tenant.context.TenantFilter;
 import com.msa.user.security.CustomAccessDeniedHandler;
 import com.msa.user.security.CustomAuthenticationEntryPoint;
 import com.msa.user.security.JwtAuthenticationFilter;

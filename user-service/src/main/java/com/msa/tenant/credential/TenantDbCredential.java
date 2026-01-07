@@ -1,5 +1,6 @@
 package com.msa.tenant.credential;
 
+import com.msa.common.credential.CredentialStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -1,9 +1,11 @@
 package com.msa.tenant.config;
 
 import com.msa.tenant.context.TenantIdentifierResolver;
+import com.msa.tenant.credential.TenantDbCredentialProvider;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +15,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,8 +33,16 @@ public class MultiTenantJpaConfig {
 
     // 멀티테넌트 커넥션 공급자 등록
     @Bean
-    public MultiTenantConnectionProvider<String> multiTenantConnectionProvider() {
-        return new MariaDbMultiTenantConnectionProvider();
+    public MultiTenantConnectionProvider<String> multiTenantConnectionProvider(
+            TenantDbCredentialProvider provider,
+            DataSource masterDataSource,
+            @Value("${spring.application.name}") String serviceName
+    ) {
+        return new MariaDbMultiTenantConnectionProvider(
+                provider,
+                serviceName,
+                masterDataSource
+        );
     }
 
     // tenant resolver 등록

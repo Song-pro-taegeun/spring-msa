@@ -1,7 +1,7 @@
 package com.msa.user.service.user;
 
 import com.msa.common.kafka_event.TenantProvisionedEvent;
-import com.msa.tenant.credential.crypto.DbCredentialCrypto;
+import com.msa.common.credential.crypto.DbCredentialCrypto;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,14 +28,14 @@ public class TenantSchemaService {
         this.dbCredentialCrypto = dbCredentialCrypto;
     }
 
-    @Value("${spring.master-datasource.url}")
+    @Value("${spring.base-datasource.url}")
     private String baseJdbcUrl;
-
-    @Value("${spring.master-datasource.username}")
-    private String masterUsername;
 
     @Value("${spring.base-schema-name}")
     private String baseSchemaName;
+
+    @Value("${spring.master-datasource.username}")
+    private String masterUsername;
 
     private static final String INSERT_TENANT_DB_CREDENTIAL_SQL = """
     INSERT INTO msa_user.tenant_db_credential (

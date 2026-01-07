@@ -1,8 +1,8 @@
 package com.msa.auth.service.auth;
 
+import com.msa.common.credential.crypto.EncryptionResult;
 import com.msa.auth.config.TenantProvisionProperties;
-import com.msa.auth.crypto.DbCredentialCrypto;
-import com.msa.auth.crypto.EncryptionResult;
+import com.msa.common.credential.crypto.DbCredentialCrypto;
 import com.msa.auth.dto.AuthRequestDto;
 import com.msa.auth.entity.tenant.CredentialStatus;
 import com.msa.auth.entity.tenant.TenantDbCredential;

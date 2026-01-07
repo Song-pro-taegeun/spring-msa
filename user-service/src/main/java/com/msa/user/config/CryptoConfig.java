@@ -1,5 +1,6 @@
 package com.msa.user.config;
 
+import com.msa.common.credential.crypto.DbCredentialCrypto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,12 +12,17 @@ import java.util.Base64;
 @Configuration
 public class CryptoConfig {
 
-    @Value("${crypto.master-key}") // Base64
-    private String masterKey;
-
     @Bean
-    public SecretKey secretKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(masterKey);
+    public SecretKey dbCredentialSecretKey(
+            @Value("${crypto.master-key}") String base64Key
+    ) {
+        byte[] keyBytes = Base64.getDecoder().decode(base64Key);
         return new SecretKeySpec(keyBytes, "AES");
     }
+
+    @Bean
+    public DbCredentialCrypto dbCredentialCrypto(SecretKey secretKey) {
+        return new DbCredentialCrypto(secretKey);
+    }
 }
+

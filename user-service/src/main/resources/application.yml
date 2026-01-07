@@ -1,7 +1,6 @@
 spring:
   application:
     name: user-service
-  base-schema-name: msa_user
   profiles:
     include: "common"
 

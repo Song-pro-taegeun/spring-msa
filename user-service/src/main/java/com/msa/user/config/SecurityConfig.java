@@ -21,6 +21,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private final String[] PERMIT_URL_ARRAY_SWAGGER = {
+            "/admin/test", // 멀티테넌트 테스트 용도
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",

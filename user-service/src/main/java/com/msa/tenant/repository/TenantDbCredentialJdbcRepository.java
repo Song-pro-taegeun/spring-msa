@@ -8,6 +8,12 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * 멀티테넌시 초기 단계에서 조회
+ *  - 초기 단계에선 어떤 DB에 connection 할 지 hibernate는 모른다
+ *  - 따라서 user master 스키마에서 테넌트 user connection 정보를 가져와야한다.
+ *  - 즉, JPA를 우회하여 master 스키마에 커넥션 정보를 get
+ */
 @Repository
 @RequiredArgsConstructor
 public class TenantDbCredentialJdbcRepository {

@@ -6,6 +6,9 @@ import com.msa.tenant.repository.TenantDbCredentialJdbcRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * DbCredential Active Connection Info get
+ */
 @Component
 @RequiredArgsConstructor
 public class TenantDbCredentialProvider {

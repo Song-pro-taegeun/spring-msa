@@ -19,9 +19,11 @@ import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
-// 테넌트 순서 ---
-// 멀티테넌시 활성화 스위치
-// Spring에게 멀티테넌시를 사용한다는 걸 공유하기 위한 설정
+/**
+ * 멀티테넌시 활성화 스위치
+ * Spring에게 멀티테넌시를 사용한다는 걸 공유하기 위한 설정
+ *  - 자동설정을 끄고 모든 걸 직접 설정
+ */
 @Configuration
 @EnableJpaRepositories(
         basePackages = "com.msa",

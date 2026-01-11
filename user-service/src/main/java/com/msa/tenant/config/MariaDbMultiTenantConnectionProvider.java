@@ -12,10 +12,12 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-// 테넌트 순서 4
-// tenant값을 통해 직접 DB 커넥션을 바꾸는 용도
-// 멀티테넌시의 핵심 부
-// Hibernate 내부에서 쿼리를 실행 전 getConnection("tenantA")를 호출한다.
+
+/**
+ * tenant값을 통해 직접 DB 커넥션을 바꾸는 용도
+ * 멀티테넌시의 핵심 부
+ * Hibernate 내부에서 쿼리를 실행 전 getConnection("tenantA")를 호출한다.
+ */
 @RequiredArgsConstructor
 public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnectionProvider<String> {
     // DataSource 캐시 사용 이유 -> 요청마다 DataSource를 생성하지 않고, 커넥션 풀을 재사용한다.
@@ -33,7 +35,7 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
         // - DataSource 에 등록 되어 있음
         // - 등록된 키는 함수를 호출하지 않음
         // 3. 즉 msa_user로 첫 요청 시에는 해당 키가 없기 때문에, createDataSource 를 실행하게 됨.
-        System.out.println("🔥 getConnection tenant=" + tenant);
+        System.out.println("getConnection tenant=" + tenant);
         DataSource ds = cache.computeIfAbsent(
                 tenant,
                 this::createTenantDataSource
@@ -41,6 +43,7 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
         return ds.getConnection();
     }
 
+    // 실제 테넌트 커넥션 DataSource 생성 부
     private DataSource createTenantDataSource(String tenant) {
         DbConnectionInfo info = credentialProvider.getConnectionInfo(tenant);
 
@@ -59,7 +62,6 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
     // 테넌트가 할당되지 않았을 때 기본으로 사용하는 스키마
     @Override
     public Connection getAnyConnection() throws SQLException {
-        System.out.println("🔥 getAnyConnection()");
         return masterDataSource.getConnection();
     }
 

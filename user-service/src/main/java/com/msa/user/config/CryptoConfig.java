@@ -1,10 +1,10 @@
-package com.msa.auth.config;
+package com.msa.user.config;
 
+import com.msa.common.credential.crypto.DbCredentialCrypto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.msa.common.credential.crypto.DbCredentialCrypto;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
@@ -25,3 +25,4 @@ public class CryptoConfig {
         return new DbCredentialCrypto(secretKey);
     }
 }
+

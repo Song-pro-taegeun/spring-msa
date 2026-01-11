@@ -1,4 +1,4 @@
-package com.msa.user.entity.admin;
+package com.msa.user.entity.dlq;
 
 /**
  * DLQ 발송 정보 DB 상태 값 구현

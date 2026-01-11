@@ -22,10 +22,13 @@ spring:
 #    driver-class-name: org.mariadb.jdbc.Driver
   # 최초 테넌트 세팅 시 마스터권한 정보
   master-datasource:
-    url: "jdbc:mariadb://localhost:3306/"
+    url: "jdbc:mariadb://localhost:3306/msa_user"
     username: "root"
     password: "1234"
     driver-class-name: org.mariadb.jdbc.Driver
+  base-datasource:
+    url: "jdbc:mariadb://localhost:3306/"
+  base-schema-name: msa_user
 
 kafka:
   host-port: "localhost:9092"

@@ -9,10 +9,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserCreatedEvent {
+public class TenantProvisionedEvent {
+    private String serviceName;
     private String tenantKey;
     private String userId;
     private String userName;
+    private byte[] passwordEnc;
+    private byte[] encIv;
     private String regDtm;
 
 }

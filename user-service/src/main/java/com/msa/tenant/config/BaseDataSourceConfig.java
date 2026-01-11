@@ -1,4 +1,4 @@
-package com.msa.user.config;
+package com.msa.tenant.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +25,8 @@ public class BaseDataSourceConfig {
         ds.setJdbcUrl(url);
         ds.setUsername(username);
         ds.setPassword(password);
+        ds.setMaximumPoolSize(5);
+        ds.setPoolName("master-datasource");
         return ds;
     }
 }

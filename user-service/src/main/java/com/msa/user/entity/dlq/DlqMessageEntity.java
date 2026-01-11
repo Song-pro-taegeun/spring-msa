@@ -1,4 +1,4 @@
-package com.msa.user.entity.admin;
+package com.msa.user.entity.dlq;
 
 import jakarta.persistence.*;
 import lombok.Getter;

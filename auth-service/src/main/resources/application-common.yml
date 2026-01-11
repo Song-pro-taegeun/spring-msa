@@ -28,7 +28,8 @@ spring:
       properties:
         enable.idempotence: true # Producer 재시도 시 중복 메시지 방지
 
-service-name:
-  auth: msa_auth
-  user: msa_user
+tenant:
+  provision:
+    services:
+      - msa_user
 

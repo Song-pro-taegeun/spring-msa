@@ -1,5 +1,5 @@
 package com.msa.user.config;
-import com.msa.tenant.config.TenantFilter;
+import com.msa.tenant.context.TenantFilter;
 import com.msa.user.security.CustomAccessDeniedHandler;
 import com.msa.user.security.CustomAuthenticationEntryPoint;
 import com.msa.user.security.JwtAuthenticationFilter;
@@ -21,6 +21,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private final String[] PERMIT_URL_ARRAY_SWAGGER = {
+            "/admin/test", // 멀티테넌트 테스트 용도
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",

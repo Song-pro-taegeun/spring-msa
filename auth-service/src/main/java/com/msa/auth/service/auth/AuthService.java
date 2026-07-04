@@ -148,11 +148,11 @@ public class AuthService {
     }
 
     private TenantDbCredential createTenantDbCredential(
-            String tenantId,
+            String tenantKey,
             String serviceName
     ) {
         // 1. DB 계정명 생성 규칙
-        String username = serviceName + "_" + tenantId;
+        String username = serviceName + "_" + tenantKey;
 
         // 2. 랜덤 패스워드 생성
         String rawPassword = UUID.randomUUID().toString().replace("-", "");
@@ -162,7 +162,7 @@ public class AuthService {
 
         // 4. 엔티티 생성
         TenantDbCredential credential = TenantDbCredential.builder()
-                .tenantId(tenantId)
+                .tenantKey(tenantKey)
                 .serviceName(serviceName)
                 .username(username)
                 .passwordEnc(result.getEncrypted())

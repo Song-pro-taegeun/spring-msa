@@ -39,7 +39,7 @@ public class TenantSchemaService {
 
     private static final String INSERT_TENANT_DB_CREDENTIAL_SQL = """
     INSERT INTO msa_user.tenant_db_credential (
-        tenant_id,
+        tenant_key,
         service_name,
         username,
         password_enc,

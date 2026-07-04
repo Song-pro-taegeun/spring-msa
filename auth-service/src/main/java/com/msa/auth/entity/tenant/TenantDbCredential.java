@@ -18,8 +18,8 @@ public class TenantDbCredential {
     @Column(name = "tenant_db_crd_id")
     private Long tenantDbCrdId;
 
-    @Column(name = "tenant_id", nullable = false, length = 36)
-    private String tenantId;
+    @Column(name = "tenant_key", nullable = false, length = 36)
+    private String tenantKey;
 
     @Column(name = "service_name", nullable = false, length = 50)
     private String serviceName;

@@ -44,8 +44,8 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
     }
 
     // 실제 테넌트 커넥션 DataSource 생성 부
-    private DataSource createTenantDataSource(String tenant) {
-        DbConnectionInfo info = credentialProvider.getConnectionInfo(tenant);
+    private DataSource createTenantDataSource(String tenantKey) {
+        DbConnectionInfo info = credentialProvider.getConnectionInfo(tenantKey);
 
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl(
@@ -54,7 +54,7 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
         ds.setUsername(info.username());
         ds.setPassword(info.password());
         ds.setMaximumPoolSize(10);
-        ds.setPoolName("tenant-" + tenant);
+        ds.setPoolName("tenant-" + tenantKey);
 
         return ds;
     }

@@ -50,7 +50,11 @@ public class TenantSchemaService {
     VALUES (?, ?, ?, ?, ?, 'ACTIVE')
 """;
 
-    @Transactional
+    // 트랜잭션 주석의 이유
+    // @Transactional이 기본 JpaTransactionManager를 타면서 멀티테넌트 Hibernate 커넥션(getConnection -> findActive)을 먼저 연다.
+    // provision()은 JPA가 아니라 baseDataSource, DDL, GRANT, Flyway처럼 직접 JDBC로 처리하는 작업이라 JPA 트랜잭션과 맞지 않는다.
+    // DDL/권한/Flyway 작업은 하나의 @Transactional로 원자성 보장이 어렵기 때문에, 트랜잭션보다 멱등성/상태관리/재처리로 안정성을 잡는 게 맞다
+    // @Transactional
     public void provision(TenantProvisionedEvent event) {
         String tenantSchema = baseSchemaName + "_" + event.getTenantKey();
         String password = dbCredentialCrypto.decrypt(event.getPasswordEnc(), event.getEncIv());

@@ -2,6 +2,7 @@ package com.msa.user.service.user;
 
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.common.credential.crypto.DbCredentialCrypto;
+import jakarta.transaction.Transactional;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +50,7 @@ public class TenantSchemaService {
     VALUES (?, ?, ?, ?, ?, 'ACTIVE')
 """;
 
-
+    @Transactional
     public void provision(TenantProvisionedEvent event) {
         String tenantSchema = baseSchemaName + "_" + event.getTenantKey();
         String password = dbCredentialCrypto.decrypt(event.getPasswordEnc(), event.getEncIv());

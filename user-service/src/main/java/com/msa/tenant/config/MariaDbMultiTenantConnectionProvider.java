@@ -40,7 +40,7 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
         // - DataSource 에 등록 되어 있음
         // - 등록된 키는 함수를 호출하지 않음
         // 3. 즉 msa_user로 첫 요청 시에는 해당 키가 없기 때문에, createDataSource 를 실행하게 됨.
-        log.info("getConnection tenant=" + tenant);
+        log.info("getConnection tenant={}", tenant);
         DataSource ds = cache.computeIfAbsent(
                 tenant,
                 this::createTenantDataSource

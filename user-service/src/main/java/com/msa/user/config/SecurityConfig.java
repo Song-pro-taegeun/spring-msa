@@ -3,6 +3,7 @@ import com.msa.tenant.context.TenantFilter;
 import com.msa.user.security.CustomAccessDeniedHandler;
 import com.msa.user.security.CustomAuthenticationEntryPoint;
 import com.msa.user.security.JwtAuthenticationFilter;
+import com.msa.user.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler; // 403 핸들러 추가
     private final CustomAuthenticationEntryPoint authenticationEntryPoint; // 401 핸들러 추가
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtUtil jwtUtil;
 
     private final String[] PERMIT_URL_ARRAY_SWAGGER = {
             "/admin/test", // 멀티테넌트 테스트 용도
@@ -69,6 +71,6 @@ public class SecurityConfig {
 
     @Bean
     public TenantFilter tenantFilter() {
-        return new TenantFilter();
+        return new TenantFilter(jwtAuthenticationFilter, jwtUtil);
     }
 }

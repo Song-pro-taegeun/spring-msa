@@ -37,12 +37,10 @@ public class MultiTenantJpaConfig {
     @Bean
     public MultiTenantConnectionProvider<String> multiTenantConnectionProvider(
             TenantDbCredentialProvider provider,
-            DataSource masterDataSource,
-            @Value("${spring.application.name}") String serviceName
+            DataSource masterDataSource
     ) {
         return new MariaDbMultiTenantConnectionProvider(
                 provider,
-                serviceName,
                 masterDataSource
         );
     }

@@ -4,7 +4,9 @@ import com.msa.common.credential.DbConnectionInfo;
 import com.msa.tenant.credential.TenantDbCredentialProvider;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -18,14 +20,17 @@ import java.util.concurrent.ConcurrentHashMap;
  * 멀티테넌시의 핵심 부
  * Hibernate 내부에서 쿼리를 실행 전 getConnection("tenantA")를 호출한다.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnectionProvider<String> {
     // DataSource 캐시 사용 이유 -> 요청마다 DataSource를 생성하지 않고, 커넥션 풀을 재사용한다.
     private final Map<String, DataSource> cache = new ConcurrentHashMap<>();
-
     private final TenantDbCredentialProvider credentialProvider;
-    private final String serviceName;
     private final DataSource masterDataSource;
+
+    @Value("${spring.base-datasource.url}")
+    private String mariaDbBaseUrl;
+
 
     @Override
     public Connection getConnection(String tenant) throws SQLException {
@@ -35,7 +40,7 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
         // - DataSource 에 등록 되어 있음
         // - 등록된 키는 함수를 호출하지 않음
         // 3. 즉 msa_user로 첫 요청 시에는 해당 키가 없기 때문에, createDataSource 를 실행하게 됨.
-        System.out.println("getConnection tenant=" + tenant);
+        log.info("getConnection tenant=" + tenant);
         DataSource ds = cache.computeIfAbsent(
                 tenant,
                 this::createTenantDataSource
@@ -49,7 +54,7 @@ public class MariaDbMultiTenantConnectionProvider implements MultiTenantConnecti
 
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl(
-                "jdbc:mariadb://localhost:3306/" + info.schema()
+                mariaDbBaseUrl + info.schema()
         );
         ds.setUsername(info.username());
         ds.setPassword(info.password());

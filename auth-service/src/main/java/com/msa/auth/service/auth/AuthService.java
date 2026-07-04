@@ -1,5 +1,6 @@
 package com.msa.auth.service.auth;
 
+import com.msa.auth.dto.AuthRequestLoginDto;
 import com.msa.common.credential.crypto.EncryptionResult;
 import com.msa.auth.config.TenantProvisionProperties;
 import com.msa.common.credential.crypto.DbCredentialCrypto;
@@ -134,17 +135,17 @@ public class AuthService {
         }
     }
 
-    public String login(String userId, String password){
+    public String login(AuthRequestLoginDto authRequestLoginDto){
         // 아이디 체크
-        Users user = userRepository.findByUserId(userId)
+        Users user = userRepository.findByUserId(authRequestLoginDto.userId())
                 .orElseThrow(() -> new AuthenticationServiceException("Invalid credentials"));
 
         // 패스워드 체크
-        if (!passwordEncoder.matches(password, user.getUserPwd())) {
+        if (!passwordEncoder.matches(authRequestLoginDto.password(), user.getUserPwd())) {
             throw new AuthenticationServiceException("Invalid credentials");
         }
 
-        return jwtUtil.generateToken(user.getUserNo(), user.getUserId(), user.getUserRole());
+        return jwtUtil.generateToken(user.getUserNo(), user.getUserId(), user.getUserRole(), user.getTenantKey());
     }
 
     private TenantDbCredential createTenantDbCredential(

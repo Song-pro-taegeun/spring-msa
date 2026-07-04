@@ -1,6 +1,7 @@
 package com.msa.auth.controller.auth;
 
 import com.msa.auth.dto.AuthRequestDto;
+import com.msa.auth.dto.AuthRequestLoginDto;
 import com.msa.auth.dto.AuthResponseDto;
 import com.msa.auth.service.auth.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +22,12 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @GetMapping("/login")
+    @PostMapping("/login")
     public ResponseEntity<AuthResponseDto> login(
-            @RequestParam String userId, @RequestParam String password) {
+            @RequestBody AuthRequestLoginDto authRequestLoginDto
+            ) {
         return ResponseEntity.ok(
-                new AuthResponseDto(authService.login(userId, password))
+                new AuthResponseDto(authService.login(authRequestLoginDto))
         );
     }
 }

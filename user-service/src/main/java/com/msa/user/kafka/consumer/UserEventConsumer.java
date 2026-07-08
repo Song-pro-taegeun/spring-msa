@@ -39,6 +39,7 @@ public class UserEventConsumer {
                 return;
             }
 
+//            int a = 1/0;
             tenantSchemaService.provision(event);
 
             /**
@@ -47,7 +48,7 @@ public class UserEventConsumer {
              * 특정상황 1. Consumer가 재시작될 때
              * 특정상황 2. 리밸런싱 발생 시
              * 특정상황 3. 예외 발생
-             * 본인은 테스트를 위해 0으로 값을 나눠 ArithmeticException를 발생ㅎ 시킴
+             * 본인은 테스트를 위해 0으로 값을 나눠 ArithmeticException를 발생시킴
              * current offset 다음부터 end offset까지 재실행하는 것을 확인함.
              */
              ack.acknowledge(); // 정상 처리 후 offset까지 Kafka에 커밋

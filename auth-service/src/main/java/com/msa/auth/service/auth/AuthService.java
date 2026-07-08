@@ -1,5 +1,6 @@
 package com.msa.auth.service.auth;
 
+import com.msa.auth.dto.AuthRequestLoginDto;
 import com.msa.common.credential.crypto.EncryptionResult;
 import com.msa.auth.config.TenantProvisionProperties;
 import com.msa.common.credential.crypto.DbCredentialCrypto;
@@ -134,25 +135,25 @@ public class AuthService {
         }
     }
 
-    public String login(String userId, String password){
+    public String login(AuthRequestLoginDto authRequestLoginDto){
         // 아이디 체크
-        Users user = userRepository.findByUserId(userId)
+        Users user = userRepository.findByUserId(authRequestLoginDto.userId())
                 .orElseThrow(() -> new AuthenticationServiceException("Invalid credentials"));
 
         // 패스워드 체크
-        if (!passwordEncoder.matches(password, user.getUserPwd())) {
+        if (!passwordEncoder.matches(authRequestLoginDto.password(), user.getUserPwd())) {
             throw new AuthenticationServiceException("Invalid credentials");
         }
 
-        return jwtUtil.generateToken(user.getUserNo(), user.getUserId(), user.getUserRole());
+        return jwtUtil.generateToken(user.getUserNo(), user.getUserId(), user.getUserRole(), user.getTenantKey());
     }
 
     private TenantDbCredential createTenantDbCredential(
-            String tenantId,
+            String tenantKey,
             String serviceName
     ) {
         // 1. DB 계정명 생성 규칙
-        String username = serviceName + "_" + tenantId;
+        String username = serviceName + "_" + tenantKey;
 
         // 2. 랜덤 패스워드 생성
         String rawPassword = UUID.randomUUID().toString().replace("-", "");
@@ -162,7 +163,7 @@ public class AuthService {
 
         // 4. 엔티티 생성
         TenantDbCredential credential = TenantDbCredential.builder()
-                .tenantId(tenantId)
+                .tenantKey(tenantKey)
                 .serviceName(serviceName)
                 .username(username)
                 .passwordEnc(result.getEncrypted())

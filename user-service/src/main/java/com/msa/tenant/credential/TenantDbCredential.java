@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class TenantDbCredential {
     private Long tenantDbCrdId;
-    private String tenantId;
+    private String tenantKey;
     private String serviceName;
     private String username;
     private byte[] passwordEnc;

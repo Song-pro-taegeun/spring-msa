@@ -3,7 +3,9 @@ import com.msa.tenant.context.TenantFilter;
 import com.msa.user.security.CustomAccessDeniedHandler;
 import com.msa.user.security.CustomAuthenticationEntryPoint;
 import com.msa.user.security.JwtAuthenticationFilter;
+import com.msa.user.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +21,7 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler; // 403 핸들러 추가
     private final CustomAuthenticationEntryPoint authenticationEntryPoint; // 401 핸들러 추가
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtUtil jwtUtil;
 
     private final String[] PERMIT_URL_ARRAY_SWAGGER = {
             "/admin/test", // 멀티테넌트 테스트 용도
@@ -69,6 +72,21 @@ public class SecurityConfig {
 
     @Bean
     public TenantFilter tenantFilter() {
-        return new TenantFilter();
+        return new TenantFilter(jwtAuthenticationFilter, jwtUtil);
+    }
+
+    /**
+     * TenantFilter는 @Bean으로도 등록되어있고, Spring Security 체인에도 직접 넣고 있음.
+     * Filter 타입 빈은 Spring Boot가 서블릿 필터로도 자동 등록.
+     * 따라서 하기 로직을 수행하여 TenantFilter는 Spring Security 체인 안에서만 실행 되도록 처리
+     * 즉, 필터가 Spring Security 체인에 딱 한 번 등록되도록 설정하는 것임.
+     */
+    @Bean
+    public FilterRegistrationBean<TenantFilter> tenantFilterRegistration(TenantFilter tenantFilter) {
+        FilterRegistrationBean<TenantFilter> registration = new FilterRegistrationBean<>(tenantFilter);
+
+        // 필터를 서블릿 필터로 자동 등록하지 않도록 처리
+        registration.setEnabled(false);
+        return registration;
     }
 }

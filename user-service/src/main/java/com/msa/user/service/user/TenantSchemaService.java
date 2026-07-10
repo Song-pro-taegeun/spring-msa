@@ -2,6 +2,10 @@ package com.msa.user.service.user;
 
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.common.credential.crypto.DbCredentialCrypto;
+import com.msa.common.tenant.provision.TenantProvisionStatus;
+import com.msa.common.tenant.provision.TenantProvisionStep;
+import com.msa.tenant.entity.TenantProvisionStatusEntity;
+import com.msa.tenant.repository.TenantProvisionStatusRepository;
 import jakarta.transaction.Transactional;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,13 +24,16 @@ import java.sql.Statement;
 public class TenantSchemaService {
     private final DataSource baseDataSource;
     private final DbCredentialCrypto dbCredentialCrypto;
+    private final TenantProvisionStatusRepository tenantProvisionStatusRepository;
 
     public TenantSchemaService(
             @Qualifier("baseDataSource") DataSource baseDataSource,
-            DbCredentialCrypto dbCredentialCrypto
+            DbCredentialCrypto dbCredentialCrypto,
+            TenantProvisionStatusRepository tenantProvisionStatusRepository
     ) {
         this.baseDataSource = baseDataSource;
         this.dbCredentialCrypto = dbCredentialCrypto;
+        this.tenantProvisionStatusRepository = tenantProvisionStatusRepository;
     }
 
     @Value("${spring.base-datasource.url}")
@@ -56,29 +63,121 @@ public class TenantSchemaService {
     // DDL/권한/Flyway 작업은 하나의 @Transactional로 원자성 보장이 어렵기 때문에, 트랜잭션보다 멱등성/상태관리/재처리로 안정성을 잡는 게 맞다
     // @Transactional
     public void provision(TenantProvisionedEvent event) {
+        // 멱등성 관련
+        // 1. 해당 테넌트의 프로비져닝 상태가 모두 완료된 상태라면 하기 비즈니스 로직을 실행하지 않는다.
+        if (tenantProvisionStatusRepository.existsByTenantKeyAndStatus(
+                event.getTenantKey(),
+                TenantProvisionStatus.COMPLETED
+        )) {
+            return;
+        }
+
         String tenantSchema = baseSchemaName + "_" + event.getTenantKey();
         String password = dbCredentialCrypto.decrypt(event.getPasswordEnc(), event.getEncIv());
 
-        // 1. tenant DB 유저 생성
-        createTenantUserIfNotExists(tenantSchema, password);
+        TenantProvisionStep currentStep = TenantProvisionStep.STARTED;
+        try {
+            // 2. 테넌트 프로비져닝 시작 row 기록
+            startProvision(event, currentStep);
 
-        // 2. 스키마 생성
-        createSchemaIfNotExists(tenantSchema);
+            // 3. tenant DB 유저 생성
+            currentStep = TenantProvisionStep.CREATE_TENANT_USER;
+            createTenantUserIfNotExists(tenantSchema, password);
 
-        // 3. 스키마에 테넌트 유저 권한 등록
-        grantTenantPrivileges(tenantSchema);
+            // 4. 스키마 생성
+            currentStep = TenantProvisionStep.CREATE_SCHEMA;
+            createSchemaIfNotExists(tenantSchema);
 
-        // 4. 마스터 스키마에 테넌트 별 DB 커넥션 계정 정보 넣기
-        insertTenantDbCredential(event, tenantSchema);
+            // 5. 스키마에 테넌트 유저 권한 등록
+            currentStep = TenantProvisionStep.GRANT_TENANT_PRIVILEGES;
+            grantTenantPrivileges(tenantSchema);
 
-        // 5. master-datasource.username에 해당 테넌트 권한 부여
-        grantMasterPrivileges(tenantSchema);
+            // 6. 마스터 스키마에 테넌트 별 DB 커넥션 계정 정보 넣기
+            currentStep = TenantProvisionStep.INSERT_TENANT_DB_CREDENTIAL;
+            insertTenantDbCredential(event, tenantSchema);
 
-        // 6. Flyway를 통한 마이그레이션 진행
-        runFlyway(tenantSchema, password);
+            // 7. master-datasource.username에 해당 테넌트 권한 부여
+            currentStep = TenantProvisionStep.GRANT_MASTER_PRIVILEGES;
+            grantMasterPrivileges(tenantSchema);
 
-        // 7. envent payload 데이터 추가
-        insertInitialUser(tenantSchema, event, password);
+            // 8. Flyway를 통한 마이그레이션 진행
+            currentStep = TenantProvisionStep.FLYWAY_MIGRATE;
+            
+            runFlyway(tenantSchema, password);
+
+            // 9. envent payload 데이터 추가
+            currentStep = TenantProvisionStep.INSERT_INITIAL_USER;
+            insertInitialUser(tenantSchema, event, password);
+
+            // 10. Provision 완료
+            currentStep = TenantProvisionStep.COMPLETED;
+            completeProvision(event, currentStep);
+
+        } catch (Exception e) {
+            failProvision(event, currentStep, e);
+            throw e;
+        }
+    }
+
+    /**
+     *  테넌트 프로비져닝 시작 row 기록
+     */
+    private void startProvision(TenantProvisionedEvent event, TenantProvisionStep currentStep){
+        String tenantKey = event.getTenantKey();
+        String eventId = event.getEventId();
+
+        TenantProvisionStatusEntity entity = tenantProvisionStatusRepository
+                .findById(tenantKey)
+                .orElseGet(() ->  // Optional이 비어 있을 때 실행할 함수
+                        TenantProvisionStatusEntity.builder()
+                                .tenantKey(event.getTenantKey())
+                                .build());
+
+        entity.setEventId(eventId);
+        entity.setStatus(TenantProvisionStatus.PROCESSING);
+        entity.setLastStep(currentStep);
+        entity.setErrorMessage(null);
+        tenantProvisionStatusRepository.save(entity);
+    }
+
+    /**
+     * 테넌트 프로비저닝 완료 기록
+     */
+    private void completeProvision(TenantProvisionedEvent event, TenantProvisionStep currentStep) {
+        TenantProvisionStatusEntity entity = tenantProvisionStatusRepository
+                .findById(event.getTenantKey())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Provision status row not found. tenantKey=" + event.getTenantKey()
+                ));
+
+        entity.setEventId(event.getEventId());
+        entity.setStatus(TenantProvisionStatus.COMPLETED);
+        entity.setLastStep(currentStep);
+        entity.setErrorMessage(null);
+
+        tenantProvisionStatusRepository.save(entity);
+    }
+
+    /**
+     * 테넌트 프로비저닝 실패 기록
+     */
+    private void failProvision(
+            TenantProvisionedEvent event,
+            TenantProvisionStep failedStep,
+            Exception exception
+    ) {
+        TenantProvisionStatusEntity entity = tenantProvisionStatusRepository
+                .findById(event.getTenantKey())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Provision status row not found. tenantKey=" + event.getTenantKey()
+                ));
+
+        entity.setEventId(event.getEventId());
+        entity.setStatus(TenantProvisionStatus.FAILED);
+        entity.setLastStep(failedStep);
+        entity.setErrorMessage(exception.getMessage());
+
+        tenantProvisionStatusRepository.save(entity);
     }
 
     /**

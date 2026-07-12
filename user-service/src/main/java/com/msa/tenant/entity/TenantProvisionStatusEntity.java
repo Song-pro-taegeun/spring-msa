@@ -29,8 +29,8 @@ public class TenantProvisionStatusEntity {
     @Column(name = "tenant_key", nullable = false, length = 50)
     private String tenantKey;
 
-    @Column(name = "event_id", nullable = false, length = 36)
-    private String eventId;
+    // @Column(name = "event_id", nullable = false, length = 36)
+    // private String eventId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

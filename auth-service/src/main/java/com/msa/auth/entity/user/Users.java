@@ -10,7 +10,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_users_tenant_key", columnNames = "tenant_key"),
+                @UniqueConstraint(name = "uk_users_user_id", columnNames = "user_id")
+        }
+)
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,16 +27,16 @@ public class Users {
     @Column(name = "user_no")
     private Long userNo;
 
-    @Column(name = "tenant_key", nullable = false, unique = true, length = 50)
+    @Column(name = "tenant_key", nullable = false, length = 50)
     private String tenantKey;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false, length = 255)
     private String userId; // 사용자 ID
 
-    @Column(name = "user_pwd")
+    @Column(name = "user_pwd", nullable = false)
     private String userPwd; // 비밀번호
 
-    @Column(name = "user_name")
+    @Column(name = "user_name", nullable = false)
     private String userName; // 사용자 이름
 
     @Column(name = "user_phone")

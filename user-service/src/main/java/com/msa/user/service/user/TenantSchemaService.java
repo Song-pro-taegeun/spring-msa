@@ -226,7 +226,7 @@ public class TenantSchemaService {
             TenantProvisionStep step,
             Exception exception
     ){
-        entity.setEventId(event.getEventId());
+        // entity.setEventId(event.getEventId());
         entity.setStatus(provisionStatus);
         entity.setLastStep(step);
         entity.setErrorMessage(exception != null ? exception.getMessage() : null);
@@ -375,6 +375,11 @@ public class TenantSchemaService {
      */
     private void insertInitialUser(String tenantSchema, TenantProvisionedEvent event, String password) {
         DataSource tenantDs = tenantDataSource(tenantSchema, password);
+
+        // try-with-resources
+        // ps.close();
+        // conn.close();
+        // 를 하지 않아도 try 블록이 끝날 때 Java가 자동으로 close 호출, 그렇지 않으면 finally 에 직접 명시해야함.
         try (
                 Connection conn = tenantDs.getConnection();
                 PreparedStatement ps = conn.prepareStatement("""

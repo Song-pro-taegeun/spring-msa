@@ -87,6 +87,7 @@ public class AuthService {
              * 그래서 본인은 해당 장애 전파가 더 크리티컬 하다고 판단하여 테넌트 프로비저닝 이벤트에서만 payload 데이터에 예외를 주고자 한다.
              */
             TenantProvisionedEvent event = TenantProvisionedEvent.builder()
+                    // .eventId(UUID.randomUUID().toString())
                     .serviceName(serviceName)
                     .tenantKey(savedTenant.getTenantKey())
                     .userId(savedUser.getUserId())

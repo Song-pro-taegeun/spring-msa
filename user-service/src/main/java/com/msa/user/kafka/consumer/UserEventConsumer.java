@@ -41,6 +41,7 @@ public class UserEventConsumer {
 
 //            int a = 1/0;
             tenantSchemaService.provision(event);
+//            int a = 1/0;
 
             /**
              * ack.acknowledge()를 하지 않으면 어떤 현상이 발생하는가?(offset commit이 되지 않았을 때)

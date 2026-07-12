@@ -6,7 +6,15 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tenant_db_credential")
+@Table(
+        name = "tenant_db_credential",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_tenant_db_credential_tenant_service",
+                        columnNames = {"tenant_key", "service_name"}
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

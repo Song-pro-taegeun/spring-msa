@@ -2,6 +2,10 @@ package com.msa.user.service.user;
 
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.common.credential.crypto.DbCredentialCrypto;
+import com.msa.common.tenant.provision.TenantProvisionStatus;
+import com.msa.common.tenant.provision.TenantProvisionStep;
+import com.msa.tenant.entity.TenantProvisionStatusEntity;
+import com.msa.tenant.repository.TenantProvisionStatusRepository;
 import jakarta.transaction.Transactional;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,13 +24,16 @@ import java.sql.Statement;
 public class TenantSchemaService {
     private final DataSource baseDataSource;
     private final DbCredentialCrypto dbCredentialCrypto;
+    private final TenantProvisionStatusRepository tenantProvisionStatusRepository;
 
     public TenantSchemaService(
             @Qualifier("baseDataSource") DataSource baseDataSource,
-            DbCredentialCrypto dbCredentialCrypto
+            DbCredentialCrypto dbCredentialCrypto,
+            TenantProvisionStatusRepository tenantProvisionStatusRepository
     ) {
         this.baseDataSource = baseDataSource;
         this.dbCredentialCrypto = dbCredentialCrypto;
+        this.tenantProvisionStatusRepository = tenantProvisionStatusRepository;
     }
 
     @Value("${spring.base-datasource.url}")
@@ -48,6 +55,11 @@ public class TenantSchemaService {
         status
     )
     VALUES (?, ?, ?, ?, ?, 'ACTIVE')
+    ON DUPLICATE KEY UPDATE
+        username = VALUES(username),
+        password_enc = VALUES(password_enc),
+        enc_iv = VALUES(enc_iv),
+        status = 'ACTIVE'
 """;
 
     // 트랜잭션 주석의 이유
@@ -59,27 +71,189 @@ public class TenantSchemaService {
         String tenantSchema = baseSchemaName + "_" + event.getTenantKey();
         String password = dbCredentialCrypto.decrypt(event.getPasswordEnc(), event.getEncIv());
 
-        // 1. tenant DB 유저 생성
-        createTenantUserIfNotExists(tenantSchema, password);
+        // 멱등성 관련
+        // 기존 프로비저닝 row가 있는지 먼저 확인
+        TenantProvisionStatusEntity entity = tenantProvisionStatusRepository
+                .findById(event.getTenantKey())
+                .orElse(null);
 
-        // 2. 스키마 생성
-        createSchemaIfNotExists(tenantSchema);
+        // 1. 해당 테넌트의 프로비져닝 상태가 모두 완료된 상태라면 하기 비즈니스 로직을 실행하지 않는다.
+        if (entity != null && entity.getStatus() == TenantProvisionStatus.COMPLETED) {
+            return;
+        }
 
-        // 3. 스키마에 테넌트 유저 권한 등록
-        grantTenantPrivileges(tenantSchema);
+        // 재시도 된 이벤트라면 현재까지 저장 된 상태 값을 읽음
+        TenantProvisionStatus savedStatus =
+                entity == null ? TenantProvisionStatus.PROCESSING : entity.getStatus();
 
-        // 4. 마스터 스키마에 테넌트 별 DB 커넥션 계정 정보 넣기
-        insertTenantDbCredential(event, tenantSchema);
+        // 재시도 된 이벤트라면 현재까지 저장 된 단계 값을 읽음
+        TenantProvisionStep savedStep =
+                entity == null ? TenantProvisionStep.STARTED : entity.getLastStep();
 
-        // 5. master-datasource.username에 해당 테넌트 권한 부여
-        grantMasterPrivileges(tenantSchema);
+        TenantProvisionStep currentStep = savedStep;
+        try {
+            // 2. 테넌트 프로비져닝 시작 row 기록
+            if (entity == null) {
+                entity = TenantProvisionStatusEntity.builder()
+                        .tenantKey(event.getTenantKey())
+                        .build();
+                startProvision(event, entity);
+            }
 
-        // 6. Flyway를 통한 마이그레이션 진행
-        runFlyway(tenantSchema, password);
+            // 3. tenant DB 유저 생성
+            if (shouldRun(savedStatus, savedStep, TenantProvisionStep.CREATE_TENANT_USER)){
+                currentStep = TenantProvisionStep.CREATE_TENANT_USER;
+                updateProvisionStep(event, currentStep);
+                createTenantUserIfNotExists(tenantSchema, password);
+            }
 
-        // 7. envent payload 데이터 추가
-        insertInitialUser(tenantSchema, event, password);
+            // 4. 스키마 생성
+            if (shouldRun(savedStatus, savedStep, TenantProvisionStep.CREATE_SCHEMA)){
+                currentStep = TenantProvisionStep.CREATE_SCHEMA;
+                updateProvisionStep(event, currentStep);
+                createSchemaIfNotExists(tenantSchema);
+            }
+
+            // 5. 스키마에 테넌트 유저 권한 등록
+            if (shouldRun(savedStatus, savedStep, TenantProvisionStep.GRANT_TENANT_PRIVILEGES)){
+                currentStep = TenantProvisionStep.GRANT_TENANT_PRIVILEGES;
+                updateProvisionStep(event, currentStep);
+                grantTenantPrivileges(tenantSchema);
+            }
+
+            // 6. 마스터 스키마에 테넌트 별 DB 커넥션 계정 정보 넣기
+            if (shouldRun(savedStatus, savedStep, TenantProvisionStep.INSERT_TENANT_DB_CREDENTIAL)){
+                currentStep = TenantProvisionStep.INSERT_TENANT_DB_CREDENTIAL;
+                updateProvisionStep(event, currentStep);
+                insertTenantDbCredential(event, tenantSchema);
+            }
+
+            // 7. master-datasource.username에 해당 테넌트 권한 부여
+            if (shouldRun(savedStatus, savedStep, TenantProvisionStep.GRANT_MASTER_PRIVILEGES)){
+                currentStep = TenantProvisionStep.GRANT_MASTER_PRIVILEGES;
+                updateProvisionStep(event, currentStep);
+                grantMasterPrivileges(tenantSchema);
+            }
+
+            // 8. Flyway를 통한 마이그레이션 진행
+            if (shouldRun(savedStatus, savedStep, TenantProvisionStep.FLYWAY_MIGRATE)){
+                currentStep = TenantProvisionStep.FLYWAY_MIGRATE;
+                updateProvisionStep(event, currentStep);
+                runFlyway(tenantSchema, password);
+
+                // 익셉션 발생 시킨 후 skip로직 및 재시도 로직 정상 수행하는지 체크
+                // int a = 1/0;
+            }
+
+            // 9. envent payload 데이터 추가
+            if (shouldRun(savedStatus, savedStep, TenantProvisionStep.INSERT_INITIAL_USER)){
+                currentStep = TenantProvisionStep.INSERT_INITIAL_USER;
+                updateProvisionStep(event, currentStep);
+                insertInitialUser(tenantSchema, event, password);
+            }
+
+            // 10. Provision 완료
+            currentStep = TenantProvisionStep.COMPLETED;
+            completeProvision(event, currentStep);
+        } catch (Exception e) {
+            failProvision(event, currentStep, e);
+            throw e;
+        }
     }
+
+    /**
+     *  테넌트 프로비져닝 시작 row 기록
+     */
+    private void startProvision(TenantProvisionedEvent event, TenantProvisionStatusEntity entity){
+        commonProvisionStepUpdate(entity, event, TenantProvisionStatus.PROCESSING, TenantProvisionStep.STARTED, null);
+    }
+
+    /**
+     * 테넌트 프로비저닝 완료 기록
+     */
+    private void completeProvision(TenantProvisionedEvent event, TenantProvisionStep step) {
+        TenantProvisionStatusEntity entity = tenantProvisionStatusRepository
+                .findById(event.getTenantKey())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Provision status row not found. tenantKey=" + event.getTenantKey()
+                ));
+
+        commonProvisionStepUpdate(entity, event, TenantProvisionStatus.COMPLETED, step, null);
+    }
+
+    /**
+     * 프로비저닝 진행 단계 기록
+     */
+    private void updateProvisionStep(TenantProvisionedEvent event, TenantProvisionStep step) {
+        TenantProvisionStatusEntity entity = tenantProvisionStatusRepository
+                .findById(event.getTenantKey())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Provision status row not found. tenantKey=" + event.getTenantKey()
+                ));
+
+        commonProvisionStepUpdate(entity, event, TenantProvisionStatus.PROCESSING, step, null);
+    }
+
+    /**
+     * 테넌트 프로비저닝 실패 기록
+     */
+    private void failProvision(
+            TenantProvisionedEvent event,
+            TenantProvisionStep step,
+            Exception exception
+    ) {
+        TenantProvisionStatusEntity entity = tenantProvisionStatusRepository
+                .findById(event.getTenantKey())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Provision status row not found. tenantKey=" + event.getTenantKey()
+                ));
+
+        commonProvisionStepUpdate(entity, event, TenantProvisionStatus.FAILED, step, exception);
+    }
+
+    /**
+     * 시작 / 완료 / 수정 / 실패 공통 업데이트 비즈니스 로직
+     * @param entity tenant provision 객체
+     * @param event 이벤트 객체
+     * @param provisionStatus 처리할 상태 값
+     * @param step 현재 step
+     * @param exception exception
+     */
+    private void commonProvisionStepUpdate(
+            TenantProvisionStatusEntity entity,
+            TenantProvisionedEvent event,
+            TenantProvisionStatus provisionStatus,
+            TenantProvisionStep step,
+            Exception exception
+    ){
+        // entity.setEventId(event.getEventId());
+        entity.setStatus(provisionStatus);
+        entity.setLastStep(step);
+        entity.setErrorMessage(exception != null ? exception.getMessage() : null);
+
+        tenantProvisionStatusRepository.save(entity);
+    }
+
+    /**
+     * tenant Provision 전 단계 체크
+     */
+    private boolean shouldRun(
+            TenantProvisionStatus status,
+            TenantProvisionStep savedStep,
+            TenantProvisionStep targetStep
+    ) {
+        if (status == TenantProvisionStatus.COMPLETED) {
+            return false;
+        }
+
+        if (status == TenantProvisionStatus.FAILED
+                || status == TenantProvisionStatus.PROCESSING) {
+            return targetStep.isAfterOrSame(savedStep);
+        }
+
+        return targetStep.isAfter(savedStep);
+    }
+
 
     /**
      * tenant DB 유저 생성 (없으면)
@@ -201,11 +375,18 @@ public class TenantSchemaService {
      */
     private void insertInitialUser(String tenantSchema, TenantProvisionedEvent event, String password) {
         DataSource tenantDs = tenantDataSource(tenantSchema, password);
+
+        // try-with-resources
+        // ps.close();
+        // conn.close();
+        // 를 하지 않아도 try 블록이 끝날 때 Java가 자동으로 close 호출, 그렇지 않으면 finally 에 직접 명시해야함.
         try (
                 Connection conn = tenantDs.getConnection();
                 PreparedStatement ps = conn.prepareStatement("""
                     INSERT INTO users (user_id, user_name)
                     VALUES (?, ?)
+                    ON DUPLICATE KEY UPDATE
+                        user_name = VALUES(user_name)
                 """)
         ) {
             ps.setString(1, event.getUserId());

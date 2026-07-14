@@ -24,7 +24,7 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
 
     private final String[] PERMIT_URL_ARRAY_SWAGGER = {
-            "/admin/test", // 멀티테넌트 테스트 용도
+            "/admin/replay/**", // 임시: 운영자 컨트롤러
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",

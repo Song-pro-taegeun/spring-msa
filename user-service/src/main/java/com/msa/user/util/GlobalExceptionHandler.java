@@ -1,6 +1,7 @@
 package com.msa.user.util;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,18 @@ public class GlobalExceptionHandler {
         Map<String, Object> errorDetails = new HashMap<>();
         errorDetails.put("error", "Not Found");
         errorDetails.put("message", "요청한 URL을 찾을 수 없습니다.");
+        errorDetails.put("status", HttpStatus.NOT_FOUND.value());
+        errorDetails.put("path", request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDetails);
+    }
+
+    // 404 Resource Not Found (resource 없을 때)
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest request) {
+        Map<String, Object> errorDetails = new HashMap<>();
+        errorDetails.put("error", "Resource Not Found");
+        errorDetails.put("message", ex.getMessage());
         errorDetails.put("status", HttpStatus.NOT_FOUND.value());
         errorDetails.put("path", request.getRequestURI());
 

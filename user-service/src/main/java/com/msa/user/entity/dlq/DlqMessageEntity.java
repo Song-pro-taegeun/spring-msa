@@ -37,7 +37,7 @@ public class DlqMessageEntity {
     private String kafkaMessageKey;
 
     // 실패 원인 정보
-    @Column(name = "exception_class", nullable = false, length = 255)
+    @Column(name = "exception_class", length = 255)
     private String exceptionClass;
 
     @Column(name = "exception_message", columnDefinition = "TEXT")
@@ -68,4 +68,37 @@ public class DlqMessageEntity {
 
     @Column(name = "replayed_at")
     private LocalDateTime replayedAt;
+
+    public void markReplayed() {
+        this.status = DlqStatus.REPLAYED;
+        this.exceptionClass = null;
+        this.exceptionMessage = null;
+        this.stackTrace = null;
+        this.replayedAt = LocalDateTime.now();
+    }
+
+    public void markReplaying() {
+        this.status = DlqStatus.REPLAYING;
+        this.replayedAt = LocalDateTime.now();
+    }
+
+    public void markFailed() {
+        this.status = DlqStatus.FAILED;
+        this.replayedAt = LocalDateTime.now();
+    }
+
+    public void markIgnored() {
+        this.status = DlqStatus.IGNORED;
+        this.replayedAt = LocalDateTime.now();
+    }
+
+    public void validateReplayable() {
+        if (!isReplayable()) {
+            throw new IllegalStateException("재처리할 수 없는 DLQ 상태입니다. status=" + status);
+        }
+    }
+
+    public boolean isReplayable() {
+        return this.status == DlqStatus.NEW || this.status == DlqStatus.FAILED;
+    }
 }

@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DlqReplayStatusService {
     private final DlqMessageRepository dlqMessageRepository;
 
+    /**
+     * DLQ 재처리 중
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markReplaying(Long dlqInfoId) {
         // 별도 트랜잭션의 영속성 컨텍스트에서 상태를 변경하기 위해 다시 조회
@@ -20,6 +23,9 @@ public class DlqReplayStatusService {
         entity.markReplaying();
     }
 
+    /**
+     * DLQ 재처리 완료
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markReplayed(Long dlqInfoId) {
         // 별도 트랜잭션의 영속성 컨텍스트에서 상태를 변경하기 위해 다시 조회
@@ -27,6 +33,9 @@ public class DlqReplayStatusService {
         entity.markReplayed();
     }
 
+    /**
+     * DLQ 재처리 실패
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(Long dlqInfoId) {
         // 별도 트랜잭션의 영속성 컨텍스트에서 상태를 변경하기 위해 다시 조회
@@ -34,6 +43,9 @@ public class DlqReplayStatusService {
         entity.markFailed();
     }
 
+    /**
+     * DLQ 재처리 무시
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markIgnored(Long dlqInfoId) {
         // 별도 트랜잭션의 영속성 컨텍스트에서 상태를 변경하기 위해 다시 조회

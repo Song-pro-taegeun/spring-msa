@@ -1,9 +1,8 @@
 package com.msa.user.entity.dlq;
 
+import com.msa.common.kafka_event.DlqMessage;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -12,7 +11,8 @@ import java.time.LocalDateTime;
  * DLQ 발송 정보 DB Entity
  */
 @Getter
-@Setter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 @Entity
 @Table(name = "dlq_message_info")
@@ -53,6 +53,7 @@ public class DlqMessageEntity {
     private String payloadJson;
 
     // DLQ 처리 상태
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private DlqStatus status = DlqStatus.NEW;
@@ -69,11 +70,32 @@ public class DlqMessageEntity {
     @Column(name = "replayed_at")
     private LocalDateTime replayedAt;
 
+    public static DlqMessageEntity fromKafkaDlq(
+            DlqMessage<?> dlq,
+            String kafkaMessageKey,
+            String payloadJson
+    ) {
+        return DlqMessageEntity.builder()
+                .originalTopic(dlq.getOriginalTopic())
+                .originalPartition(dlq.getOriginalPartition())
+                .originalOffset(dlq.getOriginalOffset())
+                .kafkaMessageKey(kafkaMessageKey)
+                .exceptionClass(dlq.getExceptionClass())
+                .exceptionMessage(dlq.getExceptionMessage())
+                .stackTrace(dlq.getStackTrace())
+                .payloadJson(payloadJson)
+                .status(DlqStatus.NEW)
+                .createdBy(DlqCreateBy.CONSUMER)
+                .build();
+    }
+
     public void markReplayed() {
+        // 추후 DLQ 통계 용으로 null 처리 하지 않음
+        // this.exceptionClass = null;
+        // this.exceptionMessage = null;
+        // this.stackTrace = null;
+
         this.status = DlqStatus.REPLAYED;
-        this.exceptionClass = null;
-        this.exceptionMessage = null;
-        this.stackTrace = null;
         this.replayedAt = LocalDateTime.now();
     }
 

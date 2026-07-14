@@ -24,21 +24,22 @@ public class DlqService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public void persistDlq(DlqMessage<?> dlq, ConsumerRecord<String, DlqMessage<?>> record){
+    public void persistDlq(DlqMessage<?> dlq, ConsumerRecord<String, DlqMessage<?>> record) {
+        String payloadJson = serializePayload(dlq.getPayload());
+
+        DlqMessageEntity entity = DlqMessageEntity.fromKafkaDlq(
+                dlq,
+                record.key(),
+                payloadJson
+        );
+
+        dlqRepository.save(entity);
+    }
+
+    private String serializePayload(Object payload) {
         try {
-            DlqMessageEntity entity = new DlqMessageEntity();
-            entity.setOriginalTopic(dlq.getOriginalTopic());
-            entity.setOriginalPartition(dlq.getOriginalPartition());
-            entity.setOriginalOffset(dlq.getOriginalOffset());
-            entity.setKafkaMessageKey(record.key());
-            entity.setExceptionClass(dlq.getExceptionClass());
-            entity.setExceptionMessage(dlq.getExceptionMessage());
-            entity.setStackTrace(dlq.getStackTrace());
-            entity.setPayloadJson(objectMapper.writeValueAsString(dlq.getPayload()));
-            entity.setStatus(DlqStatus.NEW);
-            entity.setCreatedBy(DlqCreateBy.CONSUMER);
-            dlqRepository.save(entity);
-        } catch (JsonProcessingException e){
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
             throw new IllegalStateException("DLQ payload serialization failed", e);
         }
     }

@@ -7,6 +7,7 @@ import com.msa.auth.service.outbox.OutboxService;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -41,28 +42,50 @@ public class OutboxPublisher {
     }
 
     private void publish(OutboxEvent outboxEvent) {
-        try {
+        TenantProvisionedEvent event;
 
-            // Json 문자열 역직렬화
-            TenantProvisionedEvent event = objectMapper.readValue(
+        // 1. Outbox JSON 역직렬화
+        try {
+            event = objectMapper.readValue(
                     outboxEvent.getPayload(),
                     TenantProvisionedEvent.class
             );
+        } catch (JsonProcessingException exception) {
+            log.error(
+                    "Outbox payload 역직렬화 실패. eventId={}",
+                    outboxEvent.getEventId(),
+                    exception
+            );
 
-            // 메시지 발행
+            // payload 자체가 잘못됐으므로 재시도하지 않음
+            outboxService.markFailed(
+                    outboxEvent.getEventId(),
+                    exception.getMessage()
+            );
+            return;
+        }
+
+        // 2. Kafka 발행
+        try {
             kafkaTemplate.send(
                     outboxEvent.getTopic(),
                     outboxEvent.getAggregateId(),
                     event
             ).whenComplete((result, exception) -> {
-                // 성공 기록
+                // 3. Kafka 비동기 발행 결과
                 if (exception == null) {
                     outboxService.markPublished(
                             outboxEvent.getEventId()
                     );
                 }
-                // 재시도 및 실패 처리 프로세스
+                // Kafka 비동기 예외(발행 후 서버거 down 통신 끊김 등)
                 else {
+                    log.error(
+                            "Kafka 비동기 발행 실패. eventId={}",
+                            outboxEvent.getEventId(),
+                            exception
+                    );
+
                     outboxService.handlePublishFailure(
                             outboxEvent.getEventId(),
                             exception.getMessage()
@@ -70,16 +93,18 @@ public class OutboxPublisher {
                 }
             });
         }
-        // Json 역직렬화 오류 시 재시도를 할 이유가 없으므로 바로 실패로 기록
-        catch (JsonProcessingException exception) {
+        // Kafka 동기 예외(발행 전 서버가 down됐거나 카프카 통신 실패일 경우 재시도 및 실패 처리)
+        // - 환경 변수에서 설정한 max.block.ms: 3000를 기준으로 3초간 응답하지 않았을 때 발행실패를 기록
+        // - 재시도 지수 백오프 시간 + 3초 간격(ex: 1+3, 2+3, 4+3, 8+3, 16+3)
+        catch (KafkaException exception) {
+            // send()가 Future를 반환하기 전에 실패
             log.error(
-                    "Outbox payload 역직렬화 실패. eventId={}",
+                    "Kafka 동기 발행 실패. eventId={}",
                     outboxEvent.getEventId(),
                     exception
             );
 
-            // 실패 기록
-            outboxService.markFailed(
+            outboxService.handlePublishFailure(
                     outboxEvent.getEventId(),
                     exception.getMessage()
             );

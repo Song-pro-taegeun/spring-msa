@@ -1,5 +1,6 @@
 package com.msa.auth.service.auth;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.auth.dto.AuthRequestLoginDto;
 import com.msa.auth.entity.outbox.OutboxEvent;
@@ -107,25 +108,30 @@ public class AuthService {
                     .regDtm(String.valueOf(savedUser.getRegDtm()))
                     .build();
 
-
             // 5. Kafka 발행 대신 Outbox Table에 저장
+            String payload;
             try {
-                outboxEventRepository.save(
-                        OutboxEvent.builder()
-                                .eventId(eventId)
-                                .aggregateId(savedTenant.getTenantKey())
-                                .eventType("TENANT_PROVISION_REQUESTED")
-                                .serviceName(serviceName)
-                                .topic("tenant-provision")
-                                .payload(objectMapper.writeValueAsString(event))
-                                .status(OutboxStatus.PENDING)
-                                .retryCount(0)
-                                .createdAt(LocalDateTime.now())
-                                .build()
+                payload = objectMapper.writeValueAsString(event);
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException(
+                        "테넌트 프로비저닝 이벤트 직렬화 실패. eventId=" + eventId,
+                        e
                 );
-            } catch (Exception e) {
-                throw new RuntimeException("Sign up 프로세스 중 Json 직렬화 에러");
             }
+
+            outboxEventRepository.save(
+                    OutboxEvent.builder()
+                            .eventId(eventId)
+                            .aggregateId(savedTenant.getTenantKey())
+                            .eventType("TENANT_PROVISION_REQUESTED")
+                            .serviceName(serviceName)
+                            .topic("tenant-provision")
+                            .payload(payload)
+                            .status(OutboxStatus.PENDING)
+                            .retryCount(0)
+                            .createdAt(LocalDateTime.now())
+                            .build()
+            );
 
             // ------------------------ 하기 로직 잠시 Skip Outbox 패턴 적용으로 인한 방식 변경 ------------------------
             /**

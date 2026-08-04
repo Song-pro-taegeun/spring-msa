@@ -95,7 +95,7 @@ public class OutboxPublisher {
         }
         // Kafka 동기 예외(발행 전 서버가 down됐거나 카프카 통신 실패일 경우 재시도 및 실패 처리)
         // - 환경 변수에서 설정한 max.block.ms: 3000를 기준으로 3초간 응답하지 않았을 때 발행실패를 기록
-        // - 재시도 지수 백오프 시간 + 3초 간격(ex: 1+3, 2+3, 4+3, 8+3, 16+3)
+        // - 재시도 지수 백오프 시간
         catch (KafkaException exception) {
             // send()가 Future를 반환하기 전에 실패
             log.error(

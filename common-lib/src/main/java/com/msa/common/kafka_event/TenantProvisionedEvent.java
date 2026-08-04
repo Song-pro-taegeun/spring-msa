@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class TenantProvisionedEvent {
-    // private String eventId;
+    private String eventId;
     private String serviceName;
     private String tenantKey;
     private String userId;

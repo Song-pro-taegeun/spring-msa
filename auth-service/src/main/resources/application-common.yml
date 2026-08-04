@@ -10,6 +10,10 @@ crypto:
   master-key: "Qz1pY5n2yMZ2Rr5Z0y4sR0b7hQy+0kK1zG1cZxZQm1M="
 
 spring:
+  outbox:
+    publisher:
+      delay: 1000
+      retry-count: 5
   kafka:
     bootstrap-servers: ${kafka.host-port}  # Kafka 서버 주소
     consumer:

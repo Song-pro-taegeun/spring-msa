@@ -33,7 +33,7 @@ public class OutboxPublisher {
      */
     @Scheduled(fixedDelayString = "${spring.outbox.publisher.delay}")
     public void publishPendingEvents() {
-        List<OutboxEvent> events = outboxService.findPendingEvents();
+        List<OutboxEvent> events = outboxService.claimPendingEvents();
 
         // pending 결과 별로 이벤트 발행
         for (OutboxEvent outboxEvent : events) {
@@ -74,9 +74,7 @@ public class OutboxPublisher {
             ).whenComplete((result, exception) -> {
                 // 3. Kafka 비동기 발행 결과
                 if (exception == null) {
-                    outboxService.markPublished(
-                            outboxEvent.getEventId()
-                    );
+                    outboxService.markPublished(outboxEvent.getEventId());
                 }
                 // Kafka 비동기 예외(발행 후 서버거 down 통신 끊김 등)
                 else {

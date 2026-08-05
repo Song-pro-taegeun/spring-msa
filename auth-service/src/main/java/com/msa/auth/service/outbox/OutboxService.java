@@ -19,9 +19,21 @@ public class OutboxService {
 
     private final OutboxEventRepository outboxEventRepository;
 
-    @Transactional(readOnly = true)
-    public List<OutboxEvent> findPendingEvents() {
-        return outboxEventRepository.findPublishableEvents(LocalDateTime.now());
+    /**
+     * 명시적 새로운 트랜잭션 경계 설정: 메시지 발행 대상 조회 후 PROCESSING으로 변경
+     * - row lock으로 PENDING 이벤트의 동시 선점을 방지
+     * - 현재 Publisher가 선점한 이벤트를 PROCESSING으로 변경.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<OutboxEvent> claimPendingEvents() {
+        List<OutboxEvent> events = outboxEventRepository.findPublishableEvents(LocalDateTime.now());
+
+        // 디버그 시 해당 로직에 break point를 걸기 위해 조건문 사용
+        // List.forEach는 빈 배열이면 실행하지 않지만 위 이유로 작성
+        if(!events.isEmpty()){
+            events.forEach(OutboxEvent::markProcessing);
+        }
+        return events;
     }
 
     /**

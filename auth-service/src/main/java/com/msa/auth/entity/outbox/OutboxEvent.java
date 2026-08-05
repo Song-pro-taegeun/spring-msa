@@ -59,6 +59,9 @@ public class OutboxEvent {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "processing_started_at")
+    private LocalDateTime processingStartedAt;
+
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
@@ -79,6 +82,7 @@ public class OutboxEvent {
 
     public void markProcessing() {
         this.status = OutboxStatus.PROCESSING;
+        this.processingStartedAt = LocalDateTime.now();
         this.lastError = null;
     }
 

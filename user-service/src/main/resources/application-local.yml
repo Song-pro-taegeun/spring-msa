@@ -13,7 +13,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: true
-    show-sql: true
+    show-sql: false
 ##  멀티커넥션에서 셋팅하기에 주석처리
 #  datasource:
 #    url: "jdbc:mariadb://localhost:3306/msa_user"

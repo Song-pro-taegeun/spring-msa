@@ -1,4 +1,5 @@
 package com.msa.user.config;
+import com.msa.common.entity.SecurityRole;
 import com.msa.tenant.context.TenantFilter;
 import com.msa.user.security.CustomAccessDeniedHandler;
 import com.msa.user.security.CustomAuthenticationEntryPoint;
@@ -24,7 +25,6 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
 
     private final String[] PERMIT_URL_ARRAY_SWAGGER = {
-            "/admin/replay/**", // 임시: 운영자 컨트롤러
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
@@ -32,6 +32,10 @@ public class SecurityConfig {
     };
 
     private final String[] PERMIT_API_ARRAY_SWAGGER = {};
+
+    private final String [] PERMIT_ADMIN_API = {
+            "/**", // 임시: 운영자 모든 권한 허용
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -42,6 +46,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(PERMIT_URL_ARRAY_SWAGGER)
                         .permitAll()
+                        .requestMatchers(PERMIT_ADMIN_API)
+                        .hasAuthority(SecurityRole.ROLE_ADMIN.name())
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

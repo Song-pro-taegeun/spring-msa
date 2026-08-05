@@ -13,7 +13,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: true
-    show-sql: true
+    show-sql: false
   datasource:
     url: "jdbc:mariadb://localhost:3306/msa_auth"
     username: "root"

@@ -17,6 +17,7 @@ import com.msa.auth.kafka.internal.TenantProvisionedInternalEvent;
 import com.msa.auth.repository.tenant.TenantDbCredentialRepository;
 import com.msa.auth.repository.user.UsersRepository;
 import com.msa.auth.util.JwtUtil;
+import com.msa.common.entity.SecurityRole;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.auth.entity.tenant.Tenant;
 import com.msa.auth.repository.tenant.TenantRepository;
@@ -72,7 +73,7 @@ public class AuthService {
                 .userPhone(request.getUserPhone())
                 .userAddr(request.getUserAddr())
                 .userAddrDetail(request.getUserAddrDetail())
-                .userRole("ROLE_USER") // 회원가입시 시큐리티 권한은 ROLE_USER
+                .userRole(String.valueOf(SecurityRole.ROLE_USER)) // 회원가입시 시큐리티 권한은 ROLE_USER
                 .build();
         Users savedUser = userRepository.save(user);
 

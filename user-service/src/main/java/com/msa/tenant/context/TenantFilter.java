@@ -1,6 +1,7 @@
 package com.msa.tenant.context;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.msa.common.entity.SecurityRole;
 import com.msa.user.security.JwtAuthenticationFilter;
 import com.msa.user.util.JwtUtil;
 import jakarta.servlet.*;
@@ -67,7 +68,7 @@ public class TenantFilter implements Filter {
             }
 
             // 3-2. 테넌트 유효성 검증
-            if(!Objects.equals(tenant, tenantKey)){
+            if(!Objects.equals(tenant, tenantKey) && !checkAdminRole(token)){
                 writeErrorResponse(response, request, 403, "토큰의 테넌트 정보와 요청 헤더의 테넌트 정보가 일치하지 않습니다.");
                 return;
             }
@@ -96,5 +97,10 @@ public class TenantFilter implements Filter {
         body.put("path", request.getRequestURI());
 
         new ObjectMapper().writeValue(response.getWriter(), body);
+    }
+
+    private boolean checkAdminRole(String token) {
+        return SecurityRole.ROLE_ADMIN.name()
+                .equals(jwtUtil.getRole(token));
     }
 }

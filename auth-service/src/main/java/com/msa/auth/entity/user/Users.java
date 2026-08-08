@@ -1,5 +1,6 @@
 package com.msa.auth.entity.user;
 
+import com.msa.common.entity.SecurityRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +28,7 @@ public class Users {
     @Column(name = "user_no")
     private Long userNo;
 
-    @Column(name = "tenant_key", nullable = false, length = 50)
+    @Column(name = "tenant_key", nullable = false, length = 36)
     private String tenantKey;
 
     @Column(name = "user_id", nullable = false, length = 255)

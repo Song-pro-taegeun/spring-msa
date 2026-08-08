@@ -1,6 +1,11 @@
 package com.msa.auth.service.auth;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.auth.dto.AuthRequestLoginDto;
+import com.msa.auth.entity.outbox.OutboxEvent;
+import com.msa.auth.entity.outbox.OutboxStatus;
+import com.msa.auth.repository.outbox.OutboxEventRepository;
 import com.msa.common.credential.crypto.EncryptionResult;
 import com.msa.auth.config.TenantProvisionProperties;
 import com.msa.common.credential.crypto.DbCredentialCrypto;
@@ -12,6 +17,7 @@ import com.msa.auth.kafka.internal.TenantProvisionedInternalEvent;
 import com.msa.auth.repository.tenant.TenantDbCredentialRepository;
 import com.msa.auth.repository.user.UsersRepository;
 import com.msa.auth.util.JwtUtil;
+import com.msa.common.entity.SecurityRole;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.auth.entity.tenant.Tenant;
 import com.msa.auth.repository.tenant.TenantRepository;
@@ -23,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -33,10 +40,13 @@ public class AuthService {
     private final UsersRepository userRepository;
     private final TenantRepository tenantRepository;
     private final TenantDbCredentialRepository tenantDbCredentialRepository;
+    private final OutboxEventRepository outboxEventRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final DbCredentialCrypto dbCredentialCrypto;
+
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void signUp(AuthRequestDto request){
@@ -63,7 +73,7 @@ public class AuthService {
                 .userPhone(request.getUserPhone())
                 .userAddr(request.getUserAddr())
                 .userAddrDetail(request.getUserAddrDetail())
-                .userRole("ROLE_USER") // 회원가입시 시큐리티 권한은 ROLE_USER
+                .userRole(String.valueOf(SecurityRole.ROLE_USER)) // 회원가입시 시큐리티 권한은 ROLE_USER
                 .build();
         Users savedUser = userRepository.save(user);
 
@@ -76,6 +86,8 @@ public class AuthService {
             // 3. tenant 별 DB credential 생성
             TenantDbCredential dbCredential = createTenantDbCredential(savedTenant.getTenantKey(), serviceName);
 
+            String eventId = UUID.randomUUID().toString();
+
             // 4. 이벤트 발행
             /**
              * DB 암호화 패스워드와 IV 정보를 사실 payload에 작성하면 안된다.
@@ -87,7 +99,7 @@ public class AuthService {
              * 그래서 본인은 해당 장애 전파가 더 크리티컬 하다고 판단하여 테넌트 프로비저닝 이벤트에서만 payload 데이터에 예외를 주고자 한다.
              */
             TenantProvisionedEvent event = TenantProvisionedEvent.builder()
-                    // .eventId(UUID.randomUUID().toString())
+                    .eventId(eventId)
                     .serviceName(serviceName)
                     .tenantKey(savedTenant.getTenantKey())
                     .userId(savedUser.getUserId())
@@ -97,14 +109,40 @@ public class AuthService {
                     .regDtm(String.valueOf(savedUser.getRegDtm()))
                     .build();
 
+            // 5. Kafka 발행 대신 Outbox Table에 저장
+            String payload;
+            try {
+                payload = objectMapper.writeValueAsString(event);
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException(
+                        "테넌트 프로비저닝 이벤트 직렬화 실패. eventId=" + eventId,
+                        e
+                );
+            }
+
+            outboxEventRepository.save(
+                    OutboxEvent.builder()
+                            .eventId(eventId)
+                            .aggregateId(savedTenant.getTenantKey())
+                            .eventType("TENANT_PROVISION_REQUESTED")
+                            .serviceName(serviceName)
+                            .topic("tenant-provision")
+                            .payload(payload)
+                            .status(OutboxStatus.PENDING)
+                            .retryCount(0)
+                            .createdAt(LocalDateTime.now())
+                            .build()
+            );
+
+            // ------------------------ 하기 로직 잠시 Skip Outbox 패턴 적용으로 인한 방식 변경 ------------------------
             /**
              * 트랜잭션 저장이 끝난 후 이벤트를 발행해야 하므로 내부 이벤트 발행 로직을 추가
              * Kafka를 직접 호출하지 않고, eventPublisher.publishEvent()로 Spring 내부 이벤트를 발행
              * publishEvent() 자체는 즉시 Kafka를 보내는 함수가 아니라, 이 트랜잭션이 커밋되면 그때 동작하는 hook임
              */
-            eventPublisher.publishEvent(
-                    new TenantProvisionedInternalEvent(event)
-            );
+//            eventPublisher.publishEvent(
+//                    new TenantProvisionedInternalEvent(event)
+//            );
 
             /**
              * 테스트

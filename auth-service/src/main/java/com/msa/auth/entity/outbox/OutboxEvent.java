@@ -85,28 +85,4 @@ public class OutboxEvent {
         this.processingStartedAt = LocalDateTime.now();
         this.lastError = null;
     }
-
-    public void markPublished() {
-        this.status = OutboxStatus.PUBLISHED;
-        this.publishedAt = LocalDateTime.now();
-        this.nextRetryAt = null;
-        this.lastError = null;
-    }
-
-    public void markRetry(
-            String errorMessage,
-            LocalDateTime nextRetryAt
-    ) {
-        this.status = OutboxStatus.PENDING;
-        this.retryCount++;
-        this.nextRetryAt = nextRetryAt;
-        this.lastError = errorMessage;
-    }
-
-    public void markFailed(String errorMessage) {
-        this.status = OutboxStatus.FAILED;
-        this.retryCount++;
-        this.nextRetryAt = null;
-        this.lastError = errorMessage;
-    }
 }

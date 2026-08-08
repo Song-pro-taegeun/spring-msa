@@ -1,6 +1,7 @@
 package com.msa.auth.service.outbox;
 
 import com.msa.auth.entity.outbox.OutboxEvent;
+import com.msa.auth.entity.outbox.OutboxStatus;
 import com.msa.auth.repository.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +27,7 @@ public class OutboxService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public List<OutboxEvent> claimPendingEvents() {
+        // 비관적 락
         List<OutboxEvent> events = outboxEventRepository.findPublishableEvents(LocalDateTime.now());
 
         // 디버그 시 해당 로직에 break point를 걸기 위해 조건문 사용
@@ -41,12 +43,18 @@ public class OutboxService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markPublished(String eventId) {
-        OutboxEvent event = outboxEventRepository.findById(eventId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Outbox 이벤트가 없습니다: " + eventId)
-                );
+        int updatedCount = outboxEventRepository.markPublished(
+                eventId,
+                OutboxStatus.PROCESSING,
+                OutboxStatus.PUBLISHED,
+                LocalDateTime.now()
+        );
 
-        event.markPublished();
+        if (updatedCount == 0) {
+            throw new IllegalStateException(
+                    "Outbox Event is not PROCESSING or does not exist: " + eventId
+            );
+        }
     }
 
     /**
@@ -63,22 +71,39 @@ public class OutboxService {
                 );
 
         int nextRetryCount = event.getRetryCount() + 1;
+        int updatedCount;
 
         // 재시도+1 카운트가 설정한 재시도 카운트와 같거나 초과했다면, 실패처리
         if (nextRetryCount >= maxRetryCount) {
-            event.markFailed(errorMessage);
-            return;
+            // markFailed()를 호출하지 않은 이유
+            // - 같은 클래스 에서 트랜잭션이 이미 열렸는데 새로운 트랜잭션 경계를 연다고 명시된 메서드를 호출
+            // - 근데 이미 프록시로 트랜잭션이 감싸져 있어서 새로운 경계를 연다는건 무시
+            // - Repository 메서드를 직접 호출하는 편이 트랜잭션 의미가 더 명확
+            updatedCount = outboxEventRepository.markProcessingAsFailed(
+                    eventId,
+                    OutboxStatus.PROCESSING,
+                    OutboxStatus.FAILED,
+                    errorMessage
+        );
+        } else {
+            // 재시도가 가능한 카운트라면 재시도 진행
+            LocalDateTime nextRetryAt = LocalDateTime.now()
+                    .plusSeconds(calculateRetryDelaySeconds(nextRetryCount)); // 다음 재시도 시간을 지수 백오프 계산
+
+            updatedCount = outboxEventRepository.markPendingForRetry(
+                    eventId,
+                    OutboxStatus.PROCESSING,
+                    OutboxStatus.PENDING,
+                    nextRetryAt,
+                    errorMessage
+            );
         }
 
-        // 재시도가 가능한 카운트라면 재시도 진행
-        // 다음 재시도 시간을 지수 백오프 계산
-        event.markRetry(
-                errorMessage,
-                LocalDateTime.now()
-                        .plusSeconds(
-                                calculateRetryDelaySeconds(nextRetryCount)
-                        )
-        );
+        if (updatedCount == 0) {
+            throw new IllegalStateException(
+                    "Outbox Event 상태가 PROCESSING이 아닙니다: " + eventId
+            );
+        }
     }
 
     /**
@@ -89,12 +114,18 @@ public class OutboxService {
             String eventId,
             String errorMessage
     ) {
-        OutboxEvent event = outboxEventRepository.findById(eventId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Outbox 이벤트가 없습니다: " + eventId)
-                );
+        int updatedCount = outboxEventRepository.markProcessingAsFailed(
+                eventId,
+                OutboxStatus.PROCESSING,
+                OutboxStatus.FAILED,
+                errorMessage
+        );
 
-        event.markFailed(errorMessage);
+        if (updatedCount == 0) {
+            throw new IllegalStateException(
+                    "Outbox Event 상태가 PROCESSING이 아닙니다: " + eventId
+            );
+        }
     }
 
     /**

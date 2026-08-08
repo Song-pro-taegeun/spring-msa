@@ -34,7 +34,7 @@ public class SecurityConfig {
     private final String[] PERMIT_API_ARRAY_SWAGGER = {};
 
     private final String [] PERMIT_ADMIN_API = {
-            "/**", // 임시: 운영자 모든 권한 허용
+            "/admin/**",
     };
 
     @Bean

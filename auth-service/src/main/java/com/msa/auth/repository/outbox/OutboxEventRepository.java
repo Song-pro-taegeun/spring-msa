@@ -1,7 +1,9 @@
 package com.msa.auth.repository.outbox;
 
 import com.msa.auth.entity.outbox.OutboxEvent;
+import com.msa.auth.entity.outbox.OutboxStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,4 +48,21 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, String
             nativeQuery = true
     )
     List<OutboxEvent> findPublishableEvents(@Param("now") LocalDateTime now);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+    UPDATE OutboxEvent e
+       SET e.status = :pendingStatus,
+           e.retryCount = 0,
+           e.nextRetryAt = null,
+           e.processingStartedAt = null,
+           e.lastError = null
+     WHERE e.eventId = :eventId
+       AND e.status = :failedStatus
+    """)
+    int retryFailedEvent(
+            @Param("eventId") String eventId,
+            @Param("pendingStatus") OutboxStatus pendingStatus,
+            @Param("failedStatus") OutboxStatus failedStatus
+    );
 }

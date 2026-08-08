@@ -5,31 +5,22 @@ import com.msa.common.dto.CommonRequestProvisionReplayDlqDto;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.user.entity.dlq.DlqMessageEntity;
 import com.msa.user.entity.dlq.DlqStatus;
-import com.msa.user.entity.user.Users;
 import com.msa.user.repository.dlq.DlqMessageRepository;
-import com.msa.user.repository.user.UsersRepository;
 import com.msa.user.service.Dlq.DlqReplayStatusService;
 import com.msa.user.service.user.TenantSchemaService;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @RequiredArgsConstructor
 @Service
 public class AdminService {
-    private final UsersRepository usersRepository;
     private final DlqMessageRepository dlqMessageRepository;
 
     private final TenantSchemaService tenantSchemaService;
     private final DlqReplayStatusService dlqReplayStatusService;
 
     private final ObjectMapper objectMapper;
-
-    public List<Users> getUsers(){
-        return usersRepository.findAll();
-    }
 
     /**
      * provision()은 DDL, DCL, Flyway migration, 동적 DataSource 연결을 포함하므로

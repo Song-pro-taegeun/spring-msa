@@ -3,6 +3,7 @@ import com.msa.auth.security.CustomAccessDeniedHandler;
 import com.msa.auth.security.CustomAuthenticationEntryPoint;
 import com.msa.auth.security.JwtAuthenticationFilter;
 import com.msa.auth.security.CustomUserDetailService;
+import com.msa.common.entity.SecurityRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +36,10 @@ public class SecurityConfig {
             "/auth/login"
     };
 
+    private final String [] PERMIT_ADMIN_API = {
+            "/admin/**",
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -44,6 +49,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(PERMIT_URL_ARRAY_SWAGGER)
                         .permitAll()
+                        .requestMatchers(PERMIT_ADMIN_API)
+                        .hasAuthority(SecurityRole.ROLE_ADMIN.name())
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

@@ -6,11 +6,10 @@ import com.msa.common.tenant.provision.TenantProvisionStatus;
 import com.msa.common.tenant.provision.TenantProvisionStep;
 import com.msa.tenant.entity.TenantProvisionStatusEntity;
 import com.msa.tenant.repository.TenantProvisionStatusRepository;
-import jakarta.transaction.Transactional;
+import com.zaxxer.hikari.HikariDataSource;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.stereotype.Service;
 
 
@@ -46,7 +45,7 @@ public class TenantSchemaService {
     private String masterUsername;
 
     private static final String INSERT_TENANT_DB_CREDENTIAL_SQL = """
-    INSERT INTO msa_user.tenant_db_credential (
+    INSERT INTO tenant_db_credential (
         tenant_key,
         service_name,
         username,
@@ -357,15 +356,17 @@ public class TenantSchemaService {
      * Flyway 마이그레이션 진행
      */
     private void runFlyway(String tenantSchema, String password) {
-        DataSource tenantDs = tenantDataSource(tenantSchema, password);
-        Flyway flyway = Flyway.configure()
-                .dataSource(tenantDs)
-                .schemas(tenantSchema)
-                .locations("classpath:db/migration/tenant")
-                .baselineOnMigrate(true)
-                .load();
-
-        flyway.migrate();
+        try (
+            HikariDataSource tenantDs = tenantDataSource(tenantSchema, password)
+        ) {
+            Flyway.configure()
+                    .dataSource(tenantDs)
+                    .schemas(tenantSchema)
+                    .locations("classpath:db/migration/tenant")
+                    .baselineOnMigrate(true)
+                    .load()
+                    .migrate();
+        }
     }
 
     /**
@@ -374,13 +375,12 @@ public class TenantSchemaService {
      * @param event
      */
     private void insertInitialUser(String tenantSchema, TenantProvisionedEvent event, String password) {
-        DataSource tenantDs = tenantDataSource(tenantSchema, password);
-
         // try-with-resources
         // ps.close();
         // conn.close();
         // 를 하지 않아도 try 블록이 끝날 때 Java가 자동으로 close 호출, 그렇지 않으면 finally 에 직접 명시해야함.
         try (
+                HikariDataSource tenantDs = tenantDataSource(tenantSchema, password);
                 Connection conn = tenantDs.getConnection();
                 PreparedStatement ps = conn.prepareStatement("""
                     INSERT INTO users (user_id, user_name)
@@ -398,12 +398,18 @@ public class TenantSchemaService {
         }
     }
 
-    private DataSource tenantDataSource(String tenantSchema, String password) {
-        return DataSourceBuilder.create()
-                .url(baseJdbcUrl + tenantSchema)
-                .username(tenantSchema)
-                .password(password)
-                .build();
+    private HikariDataSource tenantDataSource(
+            String tenantSchema,
+            String password
+    ) {
+        HikariDataSource ds = new HikariDataSource();
+        ds.setJdbcUrl(baseJdbcUrl + tenantSchema);
+        ds.setUsername(tenantSchema);
+        ds.setPassword(password);
+        ds.setMaximumPoolSize(1);
+        ds.setMinimumIdle(0);
+        ds.setPoolName("provision-" + tenantSchema);
+        return ds;
     }
 }
 

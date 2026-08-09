@@ -27,4 +27,7 @@ dependencies {
     // flyway
     implementation "org.flywaydb:flyway-core:9.22.3"
     implementation "org.flywaydb:flyway-mysql:9.22.3"
+
+    // Caffeine 고성능 인메모리 캐시 라이브러리
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.2.4'
 }

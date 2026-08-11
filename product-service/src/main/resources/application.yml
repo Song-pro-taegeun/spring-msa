@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: product-service
+  profiles:
+    include: "common"
+
+server:
+  port: 8083
+  servlet:
+    context-path: "/api/product-service" #base-url

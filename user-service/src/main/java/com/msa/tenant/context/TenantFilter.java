@@ -59,18 +59,21 @@ public class TenantFilter implements Filter {
             // 3. 테넌트 ID 추출
             String tenant = request.getHeader("X-Tenant-Id");
             String tenantKey = jwtUtil.getTenantKey(token);
+            String role = jwtUtil.getRole(token);
 
-            // 3-1. 토큰에 테넌트 존재하는 지 검증
-            if(tenantKey == null || tenantKey.isBlank() ||
-                    tenant == null || tenant.isBlank()){
-                writeErrorResponse(response, request, 403, "요청헤더 또는 토큰에 테넌트 정보가 없습니다.");
-                return;
-            }
+            if(!SecurityRole.ROLE_ADMIN.name().equals(role)){
+                // 3-1. 토큰에 테넌트 존재하는 지 검증
+                if(tenantKey == null || tenantKey.isBlank() ||
+                        tenant == null || tenant.isBlank()){
+                    writeErrorResponse(response, request, 403, "요청헤더 또는 토큰에 테넌트 정보가 없습니다.");
+                    return;
+                }
 
-            // 3-2. 테넌트 유효성 검증
-            if(!Objects.equals(tenant, tenantKey) && !checkAdminRole(token)){
-                writeErrorResponse(response, request, 403, "토큰의 테넌트 정보와 요청 헤더의 테넌트 정보가 일치하지 않습니다.");
-                return;
+                // 3-2. 테넌트 유효성 검증
+                if(!Objects.equals(tenant, tenantKey) && !checkAdminRole(token)){
+                    writeErrorResponse(response, request, 403, "토큰의 테넌트 정보와 요청 헤더의 테넌트 정보가 일치하지 않습니다.");
+                    return;
+                }
             }
 
             TenantContext.set(tenant);

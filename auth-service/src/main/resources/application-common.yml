@@ -39,4 +39,5 @@ tenant:
   provision:
     services:
       - msa_user
+      - msa_order
 

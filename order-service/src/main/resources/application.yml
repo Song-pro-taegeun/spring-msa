@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: order-service
+  profiles:
+    include: "common"
+
+server:
+  port: 8084
+  servlet:
+    context-path: "/api/order-service" #base-url

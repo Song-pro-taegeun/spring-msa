@@ -1,8 +1,8 @@
 package com.msa.auth.service.outbox;
 
 import com.msa.auth.entity.outbox.OutboxEvent;
-import com.msa.auth.entity.outbox.OutboxStatus;
 import com.msa.auth.repository.outbox.OutboxEventRepository;
+import com.msa.common.entity.OutboxStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

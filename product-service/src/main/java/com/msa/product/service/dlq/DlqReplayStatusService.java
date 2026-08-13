@@ -1,7 +1,7 @@
-package com.msa.user.service.Dlq;
+package com.msa.product.service.dlq;
 
-import com.msa.user.entity.dlq.DlqMessageEntity;
-import com.msa.user.repository.dlq.DlqMessageRepository;
+import com.msa.product.entity.dlq.DlqMessageEntity;
+import com.msa.product.repository.dlq.DlqMessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.stereotype.Service;

@@ -1,5 +1,7 @@
 package com.msa.auth.entity.outbox;
 
+import com.msa.common.entity.OutboxStatus;
+
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

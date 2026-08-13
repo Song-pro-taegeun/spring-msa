@@ -1,4 +1,4 @@
-package com.msa.auth.entity.outbox;
+package com.msa.common.entity;
 
 public enum OutboxStatus {
     PENDING,

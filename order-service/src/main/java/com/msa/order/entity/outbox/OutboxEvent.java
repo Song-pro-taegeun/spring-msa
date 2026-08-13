@@ -1,13 +1,9 @@
-package com.msa.auth.entity.outbox;
+package com.msa.order.entity.outbox;
 
 import com.msa.common.entity.OutboxStatus;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 

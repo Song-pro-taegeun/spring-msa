@@ -1,8 +1,7 @@
-package com.msa.auth.repository.outbox;
+package com.msa.order.repository.outbox;
 
-import com.msa.auth.entity.outbox.OutboxEvent;
+import com.msa.order.entity.outbox.OutboxEvent;
 import com.msa.common.entity.OutboxStatus;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

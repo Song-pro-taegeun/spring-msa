@@ -2,7 +2,7 @@ package com.msa.user.kafka.dlq;
 
 import com.msa.common.kafka_event.DlqMessage;
 import com.msa.tenant.context.TenantContext;
-import com.msa.user.service.Dlq.DlqService;
+import com.msa.user.service.dlq.DlqService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

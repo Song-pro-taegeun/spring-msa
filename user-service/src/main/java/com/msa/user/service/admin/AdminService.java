@@ -6,7 +6,7 @@ import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.user.entity.dlq.DlqMessageEntity;
 import com.msa.user.entity.dlq.DlqStatus;
 import com.msa.user.repository.dlq.DlqMessageRepository;
-import com.msa.user.service.Dlq.DlqReplayStatusService;
+import com.msa.user.service.dlq.DlqReplayStatusService;
 import com.msa.user.service.user.TenantSchemaService;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;

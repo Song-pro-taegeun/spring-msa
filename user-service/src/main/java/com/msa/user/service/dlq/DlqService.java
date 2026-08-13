@@ -1,11 +1,9 @@
-package com.msa.user.service.Dlq;
+package com.msa.user.service.dlq;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.kafka_event.DlqMessage;
-import com.msa.user.entity.dlq.DlqCreateBy;
 import com.msa.user.entity.dlq.DlqMessageEntity;
-import com.msa.user.entity.dlq.DlqStatus;
 import com.msa.user.repository.dlq.DlqMessageRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

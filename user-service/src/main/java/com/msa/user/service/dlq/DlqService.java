@@ -22,7 +22,8 @@ public class DlqService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public void persistDlq(DlqMessage<?> dlq, ConsumerRecord<String, DlqMessage<?>> record) {
+    public void persistDlq(DlqMessage<?> dlq, ConsumerRecord<String, String> record) {
+        // 원본 payload JSON 문자열을 DB 저장 형식으로 준비
         String payloadJson = serializePayload(dlq.getPayload());
 
         DlqMessageEntity entity = DlqMessageEntity.fromKafkaDlq(
@@ -35,6 +36,10 @@ public class DlqService {
     }
 
     private String serializePayload(Object payload) {
+        if (payload instanceof String payloadJson) {
+            return payloadJson;
+        }
+
         try {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {

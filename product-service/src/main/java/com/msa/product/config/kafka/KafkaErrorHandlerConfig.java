@@ -1,5 +1,7 @@
 package com.msa.product.config.kafka;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.kafka_event.DlqMessage;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,7 +22,10 @@ public class KafkaErrorHandlerConfig {
     private static final Logger log = LoggerFactory.getLogger(KafkaErrorHandlerConfig.class);
 
     @Bean
-    public DefaultErrorHandler kafkaErrorHandler(DeadLetterPublishingRecoverer recoverer) {
+    public DefaultErrorHandler kafkaErrorHandler(
+            DeadLetterPublishingRecoverer recoverer,
+            ObjectMapper objectMapper
+    ) {
 
         // 시도 실패 시 retry 지정 1초 간격으로 1번 지정
         FixedBackOff backOff = new FixedBackOff(1000L, 1);
@@ -37,7 +42,7 @@ public class KafkaErrorHandlerConfig {
                     Throwable target = root != null ? root : ex;
 
                     // Spring 기본 DLQ가 아닌, Custom DLQ 사용
-                    DlqMessage<Object> dlqMessage =
+                    DlqMessage<String> dlqMessage =
                             new DlqMessage<>(
                                     record.topic(),
                                     record.partition(),
@@ -47,9 +52,16 @@ public class KafkaErrorHandlerConfig {
                                     target.getClass().getName(),// 실제 예외 클래스
                                     target.getMessage(),        // 실제 예외 메시지
                                     ExceptionUtils.getStackTrace(ex),
-                                    record.value()
+                                    String.valueOf(record.value())
                             );
 
+                    // 메시지 발행 전 직렬화
+                    String dlqMessageJson;
+                    try {
+                        dlqMessageJson = objectMapper.writeValueAsString(dlqMessage);
+                    } catch (JsonProcessingException exception) {
+                        throw new IllegalStateException("DLQ 메시지 직렬화 실패", exception);
+                    }
 
                     /**
                      * value를 DLQ용 메시지로 교체 후
@@ -61,7 +73,7 @@ public class KafkaErrorHandlerConfig {
                                     record.partition(),
                                     record.offset(),
                                     record.key(),
-                                    dlqMessage
+                                    dlqMessageJson
                             ),
                             ex
                     );
@@ -76,4 +88,3 @@ public class KafkaErrorHandlerConfig {
         return errorHandler;
     }
 }
-

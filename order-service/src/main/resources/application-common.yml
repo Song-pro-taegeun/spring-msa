@@ -1,0 +1,38 @@
+jwt:
+  secret: "abcdefghijklmnopqrstuvwxyz0123456789"
+
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: OFF
+
+crypto:
+  master-key: "Qz1pY5n2yMZ2Rr5Z0y4sR0b7hQy+0kK1zG1cZxZQm1M="
+
+spring:
+  outbox:
+    publisher:
+      delay: 1000
+      retry-count: 5
+  kafka:
+    bootstrap-servers: ${kafka.host-port}  # Kafka 서버 주소
+    consumer:
+      group-id: order-service       # 컨슈머 그룹 ID
+      auto-offset-reset: earliest  # 토픽의 가장 처음부터 메시지 읽기
+      enable-auto-commit: false    # Kafka가 자동으로 offset 커밋하지 않고, 수동으로 커밋, 메시지 성공 후에만 커밋 가능 용도로 적재
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer # 컨슈머에선 역직렬화
+      properties:
+        spring.json.trusted.packages: "*" # JSON 역직렬화 시 허용 패키지
+    producer:
+      acks: all # 리더 + ISR 팔로워까지 모두 확인
+      retries: 3 # 전송 실패 시 재시도 3회
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 프로듀서에선 직렬화
+      properties:
+        enable.idempotence: true # Producer 재시도 시 중복 메시지 방지
+        max.block.ms: 3000 # send() 호출 대기 시간(호출자 관점의 대기-동기 응답)
+        request.timeout.ms: 3000 # Kafka 요청 한 번의 응답 제한 시간(전송 요청의 응답 제한-비동기 응답)
+        delivery.timeout.ms: 10000 # 재시도를 모두 포함한 메시지 전체 전달 제한 시간
+
+  flyway:
+    enabled: false # 어플리케이션 부팅 시 Flyway 자동실행 막기

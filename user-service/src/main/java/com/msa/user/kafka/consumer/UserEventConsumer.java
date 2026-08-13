@@ -1,5 +1,7 @@
 package com.msa.user.kafka.consumer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.user.service.user.TenantSchemaService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ public class UserEventConsumer {
     @Value("${spring.base-schema-name}")
     private String serviceName;
     private final TenantSchemaService tenantSchemaService;
+    private final ObjectMapper objectMapper;
 
     /**
      * user-created 토픽을 구독
@@ -27,12 +30,16 @@ public class UserEventConsumer {
             containerFactory = "kafkaListenerContainerFactory" // kafkaErrorHandler가 적용된 컨테이너팩토리, DLQ가 아닌 토픽은 모두 해당 컨테이너 팩토리를 사용해야한다.
     )
     public void consumeUserCreated(
-            ConsumerRecord<String, TenantProvisionedEvent> record,
+            ConsumerRecord<String, String> record,
             Acknowledgment ack // 수동 offset 커밋용 객체(Config에서 AckMode.MANUAL 설정일 때만 주입 됨)
     ) {
-        try {
-            TenantProvisionedEvent event = record.value();
+        // kafka value 역직렬화 체크
+        TenantProvisionedEvent event = deserialize(
+                record,
+                TenantProvisionedEvent.class
+        );
 
+        try {
             // 내 서비스가 아니면 리턴 (테넌트 프로비져닝 이벤트는 서비스별로 여러개의 메시지를 발행한다)
             if (!serviceName.equals(event.getServiceName())) {
                 ack.acknowledge();
@@ -64,9 +71,42 @@ public class UserEventConsumer {
              * DLQ는 Consumer 단위 이벤트 처리 실패 격리 용도
              */
         } catch (Exception e) {
-            TenantProvisionedEvent event = record.value();
-            log.error("UserCreatedEvent 처리 실패: {}", event, e);
+            log.error("TenantProvisionedEvent 처리 실패. topic={}, partition={}, offset={}, key={}",
+                    record.topic(),
+                    record.partition(),
+                    record.offset(),
+                    record.key(),
+                    e
+            );
             throw e; // ErrorHandler -> retry / DLQ
+        }
+    }
+
+
+    // 공통으로 사용할 것이기에 제네릭 타입으로 구현
+    public <T> T deserialize(
+            ConsumerRecord<String, String> record,
+            Class<T> tClass
+    ) {
+        try {
+            return objectMapper.readValue(
+                    record.value(),
+                    tClass
+            );
+        } catch (JsonProcessingException exception) {
+            log.error(
+                    "Kafka 이벤트 역직렬화 실패. topic={}, partition={}, offset={}, key={}",
+                    record.topic(),
+                    record.partition(),
+                    record.offset(),
+                    record.key(),
+                    exception
+            );
+
+            throw new IllegalArgumentException(
+                    tClass.getSimpleName() + " 역직렬화 실패",
+                    exception
+            );
         }
     }
 }

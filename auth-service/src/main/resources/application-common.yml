@@ -21,14 +21,14 @@ spring:
       auto-offset-reset: earliest  # 토픽의 가장 처음부터 메시지 읽기
       enable-auto-commit: false    # Kafka가 자동으로 offset 커밋하지 않고, 수동으로 커밋, 메시지 성공 후에만 커밋 가능 용도로 적재
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer # 컨슈머에선 역직렬화
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer # 컨슈머에선 역직렬화
       properties:
         spring.json.trusted.packages: "*" # JSON 역직렬화 시 허용 패키지
     producer:
       acks: all # 리더 + ISR 팔로워까지 모두 확인
       retries: 3 # 전송 실패 시 재시도 3회
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 프로듀서에선 직렬화
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer # 프로듀서에선 직렬화
       properties:
         enable.idempotence: true # Producer 재시도 시 중복 메시지 방지
         max.block.ms: 3000 # send() 호출 대기 시간(호출자 관점의 대기-동기 응답)

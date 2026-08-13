@@ -42,35 +42,12 @@ public class OutboxPublisher {
     }
 
     private void publish(OutboxEvent outboxEvent) {
-        TenantProvisionedEvent event;
-
-        // 1. Outbox JSON 역직렬화
-        try {
-            event = objectMapper.readValue(
-                    outboxEvent.getPayload(),
-                    TenantProvisionedEvent.class
-            );
-        } catch (JsonProcessingException exception) {
-            log.error(
-                    "Outbox payload 역직렬화 실패. eventId={}",
-                    outboxEvent.getEventId(),
-                    exception
-            );
-
-            // payload 자체가 잘못됐으므로 재시도하지 않음
-            outboxService.markFailed(
-                    outboxEvent.getEventId(),
-                    exception.getMessage()
-            );
-            return;
-        }
-
-        // 2. Kafka 발행
+        // 1. Kafka 발행
         try {
             kafkaTemplate.send(
                     outboxEvent.getTopic(),
                     outboxEvent.getAggregateId(),
-                    event
+                    outboxEvent.getPayload()
             ).whenComplete((result, exception) -> {
                 // 3. Kafka 비동기 발행 결과
                 if (exception == null) {

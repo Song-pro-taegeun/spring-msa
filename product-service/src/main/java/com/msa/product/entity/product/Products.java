@@ -14,8 +14,12 @@ import java.time.LocalDateTime;
         name = "products",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_products_product_code",
-                        columnNames = "product_code"
+                        name = "uk_products_code_brand_name",
+                        columnNames = {
+                                "product_code",
+                                "brand_name",
+                                "product_name"
+                        }
                 )
         },
         indexes = {

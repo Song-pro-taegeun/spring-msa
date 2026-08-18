@@ -1,5 +1,6 @@
 package com.msa.product.entity.outbox;
 
+import com.msa.common.entity.OutboxStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

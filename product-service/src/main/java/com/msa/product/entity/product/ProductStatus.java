@@ -1,8 +1,7 @@
 package com.msa.product.entity.product;
 
 public enum ProductStatus {
-    DRAFT,
-    ACTIVE,
-    INACTIVE,
-    DISCONTINUED
+    ACTIVE, // 활성
+    INACTIVE, // 비활성
+    DISCONTINUED // 단종
 }

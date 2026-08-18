@@ -73,7 +73,7 @@ public class ProductService {
             // 이벤트 페이로드 생성
             TenantProductSnapshotEvent payload = TenantProductSnapshotEvent.builder()
                     .eventId(eventId)
-                    .eventType(EventType.TENANT_PRODUCT_SNAPSHOT)
+                    .eventType(EventType.PRODUCT_SNAPSHOT)
                     .serviceName(serviceName)
                     .payloads(payloads)
                     .build();
@@ -92,9 +92,9 @@ public class ProductService {
                     OutboxEvent.builder()
                             .eventId(eventId)
                             .aggregateId("MASTER_SCHEMA")
-                            .eventType(EventType.TENANT_PRODUCT_SNAPSHOT.name())
+                            .eventType(EventType.PRODUCT_SNAPSHOT.name())
                             .serviceName(serviceName)
-                            .topic("tenant-product-snapshot")
+                            .topic("product-snapshot")
                             .payload(eventPayload)
                             .status(OutboxStatus.PENDING)
                             .retryCount(0)

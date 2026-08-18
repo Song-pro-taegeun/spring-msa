@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-@ConfigurationProperties(prefix = "tenant.product-snapshot")
+@ConfigurationProperties(prefix = "product-snapshot")
 @Component
 @Getter
 public class TenantProductSnapshotProperties {

@@ -1,6 +1,6 @@
 package com.msa.product.service.outbox;
 
-import com.msa.product.entity.outbox.OutboxStatus;
+import com.msa.common.entity.OutboxStatus;
 import com.msa.product.repository.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

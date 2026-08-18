@@ -75,7 +75,7 @@ public class Products {
         this.productName = productName;
         this.description = description;
         this.brandName = brandName;
-        this.status = ProductStatus.DRAFT;
+        this.status = ProductStatus.ACTIVE;
         this.createdBy = createdBy;
     }
 

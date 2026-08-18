@@ -16,6 +16,7 @@ import com.msa.auth.repository.tenant.TenantDbCredentialRepository;
 import com.msa.auth.repository.user.UsersRepository;
 import com.msa.auth.util.JwtUtil;
 import com.msa.common.entity.SecurityRole;
+import com.msa.common.kafka_event.EventType;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.common.entity.OutboxStatus;
 import com.msa.auth.entity.tenant.Tenant;
@@ -123,7 +124,7 @@ public class AuthService {
                     OutboxEvent.builder()
                             .eventId(eventId)
                             .aggregateId(savedTenant.getTenantKey())
-                            .eventType("TENANT_PROVISION_REQUESTED")
+                            .eventType(EventType.TENANT_PROVISION_REQUESTED.name())
                             .serviceName(serviceName)
                             .topic("tenant-provision")
                             .payload(payload)

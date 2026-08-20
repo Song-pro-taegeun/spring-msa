@@ -13,16 +13,16 @@ import java.math.BigDecimal;
 public interface OrderProductSnapshotRepository extends JpaRepository<OrderProductSnapshot, Long> {
     @Modifying
     @Query("""
-    update OrderProductSnapshot snapshot
-       set snapshot.productId = :productId,
-           snapshot.productName = :productName,
-           snapshot.optionName = :optionName,
-           snapshot.currency = :currency,
-           snapshot.price = :price,
-           snapshot.updateVersion = :updateVersion
-     where snapshot.productOptionId = :productOptionId
-       and snapshot.updateVersion < :updateVersion
-""")
+        update OrderProductSnapshot snapshot
+           set snapshot.productId = :productId,
+               snapshot.productName = :productName,
+               snapshot.optionName = :optionName,
+               snapshot.currency = :currency,
+               snapshot.price = :price,
+               snapshot.updateVersion = :updateVersion
+         where snapshot.productOptionId = :productOptionId
+           and snapshot.updateVersion < :updateVersion
+    """)
     int updateIfNewer(
             @Param("productOptionId") Long productOptionId,
             @Param("productId") Long productId,

@@ -1,9 +1,9 @@
-package com.msa.user.kafka.consumer;
+package com.msa.order.kafka.consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
-import com.msa.user.service.user.TenantSchemaService;
+import com.msa.order.service.order.TenantSchemaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -15,18 +15,15 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class UserEventConsumer {
+public class TenantProvisionEventConsumer {
     @Value("${spring.base-schema-name}")
     private String serviceName;
     private final TenantSchemaService tenantSchemaService;
     private final ObjectMapper objectMapper;
 
-    /**
-     * user-created 토픽을 구독
-     */
     @KafkaListener(
             topics = "tenant-provision",
-            groupId = "user-service",
+            groupId = "order-service",
             containerFactory = "kafkaListenerContainerFactory" // kafkaErrorHandler가 적용된 컨테이너팩토리, DLQ가 아닌 토픽은 모두 해당 컨테이너 팩토리를 사용해야한다.
     )
     public void consumeUserCreated(
@@ -81,7 +78,6 @@ public class UserEventConsumer {
             throw e; // ErrorHandler -> retry / DLQ
         }
     }
-
 
     // 공통으로 사용할 것이기에 제네릭 타입으로 구현
     public <T> T deserialize(

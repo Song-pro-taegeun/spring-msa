@@ -43,11 +43,11 @@ public class AdminService {
                         .formatted(topic, partition, offset)
         ));
 
-        // status 체크
-        dlqMessageEntity.validateReplayable();
-
         // 재처리 중 단계 기록
-        dlqReplayStatusService.markReplaying(dlqMessageEntity.getId());
+        int updated = dlqReplayStatusService.markReplaying(dlqMessageEntity.getId());
+        if (updated == 0) {
+            return "DLQ 재처리 실패(이미 처리 중이거나 완료된 이벤트)";
+        }
         try {
             // json 역직렬화
             TenantProvisionedEvent event = objectMapper.readValue(

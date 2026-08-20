@@ -113,14 +113,4 @@ public class DlqMessageEntity {
         this.status = DlqStatus.IGNORED;
         this.replayedAt = LocalDateTime.now();
     }
-
-    public void validateReplayable() {
-        if (!isReplayable()) {
-            throw new IllegalStateException("재처리할 수 없는 DLQ 상태입니다. status=" + status);
-        }
-    }
-
-    public boolean isReplayable() {
-        return this.status == DlqStatus.NEW || this.status == DlqStatus.FAILED;
-    }
 }

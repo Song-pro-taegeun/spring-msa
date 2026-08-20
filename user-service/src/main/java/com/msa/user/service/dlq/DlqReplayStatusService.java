@@ -1,6 +1,7 @@
 package com.msa.user.service.dlq;
 
 import com.msa.user.entity.dlq.DlqMessageEntity;
+import com.msa.user.entity.dlq.DlqStatus;
 import com.msa.user.repository.dlq.DlqMessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
@@ -8,19 +9,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class DlqReplayStatusService {
     private final DlqMessageRepository dlqMessageRepository;
 
     /**
-     * DLQ 재처리 중
+     * DLQ 재처리 중(원자적 업데이트)
+     * NEW 또는 FAILED 상태인 DLQ만 REPLAYING으로 원자적으로 변경
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markReplaying(Long dlqInfoId) {
-        // 별도 트랜잭션의 영속성 컨텍스트에서 상태를 변경하기 위해 다시 조회
-        DlqMessageEntity entity = getEntity(dlqInfoId);
-        entity.markReplaying();
+    public int markReplaying(Long dlqInfoId) {
+        return dlqMessageRepository.markReplayingIfReplayable(
+                dlqInfoId, DlqStatus.REPLAYING,
+                List.of(DlqStatus.NEW,
+                DlqStatus.FAILED)
+        );
     }
 
     /**

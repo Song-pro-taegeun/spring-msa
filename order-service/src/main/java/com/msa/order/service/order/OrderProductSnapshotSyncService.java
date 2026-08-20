@@ -2,7 +2,9 @@ package com.msa.order.service.order;
 
 import com.msa.common.kafka_event.TenantProductSnapshotEvent;
 import com.msa.common.kafka_event.TenantProductSnapshotPayload;
+import com.msa.order.entity.inbox.InboxEvent;
 import com.msa.order.entity.order.OrderProductSnapshot;
+import com.msa.order.repository.inbox.InboxEventRepository;
 import com.msa.order.repository.order.OrderProductSnapshotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,12 +16,16 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderProductSnapshotSyncService {
     private final OrderProductSnapshotRepository orderProductSnapshotRepository;
+    private final InboxEventRepository inboxEventRepository;
 
     @Transactional
     public void createProductSnapshot(TenantProductSnapshotEvent event){
-        // 추가 작업 필요 내용
-        // 멱등성 체크 로직 필요(inbox 도입)
+        // 1. 처리된 이벤트인지 확인(이벤트 멱등성)
+        if (inboxEventRepository.existsById(event.getEventId())) {
+            return;
+        }
 
+        // 2. 스냅샷 저장
         for (TenantProductSnapshotPayload payload : event.getPayloads()) {
             // 다른 트랜잭션에서 동시에 처리되어 최종 이벤트 반영 순서가 꼬일 수 있으므로 조건부 업데이트 진행(원자적 갱신)
             int updated = orderProductSnapshotRepository.updateIfNewer(
@@ -61,6 +67,12 @@ public class OrderProductSnapshotSyncService {
             }
         }
 
-        // Inbox 처리 완료 저장
+        // 3. inbox 기록
+        inboxEventRepository.save(
+                InboxEvent.create(
+                        event.getEventId(),
+                        event.getEventType().name()
+                )
+        );
     }
 }

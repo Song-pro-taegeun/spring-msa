@@ -15,4 +15,5 @@ public class ProductNormalize {
     private String optionName;
     private String currency;
     private BigDecimal price;
+    private Long updateVersion;
 }

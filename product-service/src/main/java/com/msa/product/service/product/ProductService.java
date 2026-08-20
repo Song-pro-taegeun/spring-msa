@@ -66,6 +66,7 @@ public class ProductService {
                         .optionName(data.getOptionName())
                         .currency(data.getCurrency())
                         .price(data.getPrice())
+                        .updateVersion(data.getUpdateVersion())
                         .build();
                 payloads.add(payloadData);
             });
@@ -153,8 +154,8 @@ public class ProductService {
                     .optionName(option.getOptionName())
                     .currency(option.getCurrency())
                     .price(option.getPrice())
+                    .updateVersion(option.getUpdateVersion())
                     .build();
-
             result.add(productNormalize);
         }
 

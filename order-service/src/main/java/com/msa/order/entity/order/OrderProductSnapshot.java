@@ -33,6 +33,9 @@ public class OrderProductSnapshot {
     @Column(name = "price", nullable = false, precision = 19, scale = 4)
     private BigDecimal price;
 
+    @Column(name = "update_version", nullable = false)
+    private Long updateVersion;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
@@ -42,13 +45,15 @@ public class OrderProductSnapshot {
                                  String productName,
                                  String optionName,
                                  String currency,
-                                 BigDecimal price){
+                                 BigDecimal price,
+                                 Long updateVersion){
         this.productOptionId = productOptionId;
         this.productId = productId;
         this.productName = productName;
         this.optionName = optionName;
         this.currency = currency;
         this.price = price;
+        this.updateVersion = updateVersion;
     }
 
     public static OrderProductSnapshot create(Long productOptionId,
@@ -56,7 +61,8 @@ public class OrderProductSnapshot {
                                               String productName,
                                               String optionName,
                                               String currency,
-                                              BigDecimal price){
+                                              BigDecimal price,
+                                              Long updateVersion){
         if (productOptionId == null || productOptionId <= 0) {
             throw new IllegalArgumentException("상품 옵션 ID는 양수여야 합니다.");
         }
@@ -88,6 +94,11 @@ public class OrderProductSnapshot {
         if (price == null || price.signum() < 0) {
             throw new IllegalArgumentException("가격은 0 이상이어야 합니다.");
         }
-        return new OrderProductSnapshot(productOptionId, productId, productName, optionName, currency, price);
+
+        if (updateVersion == null || updateVersion < 0) {
+            throw new IllegalArgumentException("버전은 0 이상이어야 합니다.");
+        }
+
+        return new OrderProductSnapshot(productOptionId, productId, productName, optionName, currency, price, updateVersion);
     }
 }

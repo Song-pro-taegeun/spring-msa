@@ -65,16 +65,20 @@ public class ProductOption {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "update_version", nullable = false)
+    private Long updateVersion;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    private ProductOption(Products products, String optionName, BigDecimal price, String currency) {
+    private ProductOption(Products products, String optionName, BigDecimal price, String currency, Long updateVersion) {
         this.products = products;
         this.optionName = optionName;
         this.price = price;
         this.currency = currency;
         this.status = ProductOptionStatus.ACTIVE;
+        this.updateVersion = updateVersion;
     }
 
     public static ProductOption create(
@@ -83,6 +87,8 @@ public class ProductOption {
             BigDecimal price,
             String currency
     ) {
+        Long updateVersion = 1L;
+
         if (products == null) {
             throw new IllegalArgumentException("제품은 필수입니다.");
         }
@@ -98,7 +104,6 @@ public class ProductOption {
         if (currency == null) {
             throw new IllegalArgumentException("제품 통화 단위는 필수입니다.");
         }
-
-        return new ProductOption(products, optionName, price, currency);
+        return new ProductOption(products, optionName, price, currency, updateVersion);
     }
 }

@@ -97,9 +97,7 @@ public class ProductService {
                             .serviceName(serviceName)
                             .topic("product-snapshot")
                             .payload(eventPayload)
-                            .status(OutboxStatus.PENDING)
                             .retryCount(0)
-                            .createdAt(LocalDateTime.now())
                             .build()
             );
         }

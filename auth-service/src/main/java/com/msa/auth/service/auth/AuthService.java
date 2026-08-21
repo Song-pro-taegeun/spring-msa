@@ -128,9 +128,7 @@ public class AuthService {
                             .serviceName(serviceName)
                             .topic("tenant-provision")
                             .payload(payload)
-                            .status(OutboxStatus.PENDING)
                             .retryCount(0)
-                            .createdAt(LocalDateTime.now())
                             .build()
             );
 

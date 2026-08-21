@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
     private final AdminService adminService;
 
-    @PostMapping("/replay/provision")
+    @PostMapping("/dlq-events/replay/provision")
     public ResponseEntity<String> replayProvisionDlq(
             @RequestBody CommonRequestProvisionReplayDlqDto req
     ){

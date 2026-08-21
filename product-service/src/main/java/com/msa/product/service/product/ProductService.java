@@ -2,10 +2,9 @@ package com.msa.product.service.product;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.msa.common.entity.OutboxStatus;
 import com.msa.common.kafka_event.EventType;
-import com.msa.common.kafka_event.TenantProductSnapshotEvent;
-import com.msa.common.kafka_event.TenantProductSnapshotPayload;
+import com.msa.common.kafka_event.ProductSnapshotEvent;
+import com.msa.common.kafka_event.ProductSnapshotPayload;
 import com.msa.product.config.TenantProductSnapshotProperties;
 import com.msa.product.domain.ProductNormalize;
 import com.msa.product.dto.product.RequestProductDto;
@@ -23,7 +22,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 @RequiredArgsConstructor
@@ -57,9 +55,9 @@ public class ProductService {
             String eventId = UUID.randomUUID().toString();
 
             // 페이로드 내 배열 데이터 정규화
-            List<TenantProductSnapshotPayload> payloads = new ArrayList<>();
+            List<ProductSnapshotPayload> payloads = new ArrayList<>();
             productNormalizeList.forEach((data)->{
-                TenantProductSnapshotPayload payloadData = TenantProductSnapshotPayload.builder()
+                ProductSnapshotPayload payloadData = ProductSnapshotPayload.builder()
                         .productId(data.getProductId())
                         .productOptionId(data.getProductOptionId())
                         .productName(data.getProductName())
@@ -72,7 +70,7 @@ public class ProductService {
             });
 
             // 이벤트 페이로드 생성
-            TenantProductSnapshotEvent payload = TenantProductSnapshotEvent.builder()
+            ProductSnapshotEvent payload = ProductSnapshotEvent.builder()
                     .eventId(eventId)
                     .eventType(EventType.PRODUCT_SNAPSHOT)
                     .serviceName(serviceName)
@@ -97,9 +95,7 @@ public class ProductService {
                             .serviceName(serviceName)
                             .topic("product-snapshot")
                             .payload(eventPayload)
-                            .status(OutboxStatus.PENDING)
                             .retryCount(0)
-                            .createdAt(LocalDateTime.now())
                             .build()
             );
         }

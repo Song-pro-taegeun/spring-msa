@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TenantProductSnapshotPayload {
+public class ProductSnapshotPayload {
     private Long productId;
     private Long productOptionId;
     private String productName;

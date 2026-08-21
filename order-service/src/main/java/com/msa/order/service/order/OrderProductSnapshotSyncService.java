@@ -1,7 +1,7 @@
 package com.msa.order.service.order;
 
-import com.msa.common.kafka_event.TenantProductSnapshotEvent;
-import com.msa.common.kafka_event.TenantProductSnapshotPayload;
+import com.msa.common.kafka_event.ProductSnapshotEvent;
+import com.msa.common.kafka_event.ProductSnapshotPayload;
 import com.msa.order.entity.inbox.InboxEvent;
 import com.msa.order.entity.order.OrderProductSnapshot;
 import com.msa.order.repository.inbox.InboxEventRepository;
@@ -19,14 +19,14 @@ public class OrderProductSnapshotSyncService {
     private final InboxEventRepository inboxEventRepository;
 
     @Transactional
-    public void createProductSnapshot(TenantProductSnapshotEvent event){
+    public void createProductSnapshot(ProductSnapshotEvent event){
         // 1. 처리된 이벤트인지 확인(이벤트 멱등성)
         if (inboxEventRepository.existsById(event.getEventId())) {
             return;
         }
 
         // 2. 스냅샷 저장
-        for (TenantProductSnapshotPayload payload : event.getPayloads()) {
+        for (ProductSnapshotPayload payload : event.getPayloads()) {
             // 다른 트랜잭션에서 동시에 처리되어 최종 이벤트 반영 순서가 꼬일 수 있으므로 조건부 업데이트 진행(원자적 갱신)
             int updated = orderProductSnapshotRepository.updateIfNewer(
                     payload.getProductOptionId(),

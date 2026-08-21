@@ -1,13 +1,9 @@
 package com.msa.product.kafka.publisher;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.product.entity.outbox.OutboxEvent;
 import com.msa.product.service.outbox.OutboxService;
-import com.msa.common.kafka_event.TenantProvisionedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -26,7 +22,6 @@ import java.util.List;
 public class OutboxPublisher {
     private final OutboxService outboxService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final ObjectMapper objectMapper;
 
     /**
      * 아웃박스 퍼블리쉬 스케쥴러
@@ -37,51 +32,71 @@ public class OutboxPublisher {
 
         // pending 결과 별로 이벤트 발행
         for (OutboxEvent outboxEvent : events) {
-            publish(outboxEvent);
+            try {
+                publish(outboxEvent);
+            } catch (Exception exception) {
+                // Kafka 동기 예외(발행 전 서버가 down됐거나 카프카 통신 실패일 경우 재시도 및 실패 처리)
+                // - 환경 변수에서 설정한 max.block.ms: 3000를 기준으로 3초간 응답하지 않았을 때 발행실패를 기록
+                // - 재시도 지수 백오프 시간
+                // KafkaTemplate.send() 호출 과정에서 발생한
+                // Kafka 동기 예외 및 기타 동기 RuntimeException 처리
+                log.error(
+                        "Outbox 동기 발행 처리 실패. eventId={}",
+                        outboxEvent.getEventId(),
+                        exception
+                );
+
+                recordFailureSafely(outboxEvent, exception);
+            }
         }
     }
 
     private void publish(OutboxEvent outboxEvent) {
         // 1. Kafka 발행
-        try {
-            kafkaTemplate.send(
-                    outboxEvent.getTopic(),
-                    outboxEvent.getAggregateId(),
-                    outboxEvent.getPayload()
-            ).whenComplete((result, exception) -> {
-                // 3. Kafka 비동기 발행 결과
-                if (exception == null) {
+        kafkaTemplate.send(
+                outboxEvent.getTopic(),
+                outboxEvent.getAggregateId(),
+                outboxEvent.getPayload()
+        ).whenComplete((result, exception) -> {
+            // 2. Kafka 비동기 발행 결과
+            if (exception == null) {
+                try {
                     outboxService.markPublished(outboxEvent.getEventId());
-                }
-                // Kafka 비동기 예외(발행 후 서버거 down 통신 끊김 등)
-                else {
+                } catch (Exception statusException) {
                     log.error(
-                            "Kafka 비동기 발행 실패. eventId={}",
+                            "Kafka 발행 성공 후 Outbox 상태 변경 실패. eventId={}",
                             outboxEvent.getEventId(),
-                            exception
-                    );
-
-                    outboxService.handlePublishFailure(
-                            outboxEvent.getEventId(),
-                            exception.getMessage()
+                            statusException
                     );
                 }
-            });
-        }
-        // Kafka 동기 예외(발행 전 서버가 down됐거나 카프카 통신 실패일 경우 재시도 및 실패 처리)
-        // - 환경 변수에서 설정한 max.block.ms: 3000를 기준으로 3초간 응답하지 않았을 때 발행실패를 기록
-        // - 재시도 지수 백오프 시간
-        catch (KafkaException exception) {
-            // send()가 Future를 반환하기 전에 실패
-            log.error(
-                    "Kafka 동기 발행 실패. eventId={}",
-                    outboxEvent.getEventId(),
-                    exception
-            );
+            }
+            // Kafka 비동기 예외(발행 후 서버거 down 통신 끊김 등)
+            else {
+                log.error(
+                        "Kafka 비동기 발행 실패. eventId={}",
+                        outboxEvent.getEventId(),
+                        exception
+                );
 
+                recordFailureSafely(outboxEvent, exception);
+            }
+        });
+    }
+
+    private void recordFailureSafely(
+            OutboxEvent outboxEvent,
+            Throwable exception
+    ) {
+        try {
             outboxService.handlePublishFailure(
                     outboxEvent.getEventId(),
                     exception.getMessage()
+            );
+        } catch (Exception recordingException) {
+            log.error(
+                    "Outbox 실패 상태 기록 실패. eventId={}",
+                    outboxEvent.getEventId(),
+                    recordingException
             );
         }
     }

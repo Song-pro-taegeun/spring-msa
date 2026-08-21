@@ -20,11 +20,19 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/replay/provision")
+    @PostMapping("/dlq-events/replay/provision")
     public ResponseEntity<String> replayProvisionDlq(
             @RequestBody CommonRequestProvisionReplayDlqDto req
     ){
         String result = adminService.replayProvisionDlq(req);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/dlq-events/replay/product-snapshot")
+    public ResponseEntity<String> replayProductSnapshotDlq(
+            @RequestBody CommonRequestProvisionReplayDlqDto req
+    ){
+        String result = adminService.replayProductSnapshotDlq(req);
         return ResponseEntity.ok(result);
     }
 

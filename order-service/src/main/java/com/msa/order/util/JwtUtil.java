@@ -47,13 +47,13 @@ public class JwtUtil {
             Jwts.parserBuilder().setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8))).build().parseClaimsJws(token);
             return true; // 검증 성공
         } catch (ExpiredJwtException e) {
-            log.warn("JWT 토큰이 만료되었습니다. token={}", token);
+            log.warn("JWT 토큰이 만료되었습니다.");
         } catch (UnsupportedJwtException e) {
-            log.warn("지원되지 않는 JWT 형식입니다. token={}", token);
+            log.warn("지원되지 않는 JWT 형식입니다.");
         } catch (MalformedJwtException e) {
-            log.warn("JWT 토큰이 올바르게 구성되지 않았습니다. token={}", token);
+            log.warn("JWT 토큰이 올바르게 구성되지 않았습니다.");
         } catch (SignatureException e) {
-            log.warn("JWT 서명이 올바르지 않습니다. token={}", token);
+            log.warn("JWT 서명이 올바르지 않습니다.");
         } catch (IllegalArgumentException e) {
             log.warn("JWT 토큰이 비어 있습니다.");
         }

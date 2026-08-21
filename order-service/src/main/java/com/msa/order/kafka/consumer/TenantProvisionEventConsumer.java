@@ -1,9 +1,8 @@
 package com.msa.order.kafka.consumer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.order.service.order.TenantSchemaService;
+import com.msa.order.util.KafkaEventDeserializer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -19,7 +18,7 @@ public class TenantProvisionEventConsumer {
     @Value("${spring.base-schema-name}")
     private String serviceName;
     private final TenantSchemaService tenantSchemaService;
-    private final ObjectMapper objectMapper;
+    private final KafkaEventDeserializer kafkaEventDeserializer;
 
     @KafkaListener(
             topics = "tenant-provision",
@@ -31,7 +30,7 @@ public class TenantProvisionEventConsumer {
             Acknowledgment ack // 수동 offset 커밋용 객체(Config에서 AckMode.MANUAL 설정일 때만 주입 됨)
     ) {
         // kafka value 역직렬화 체크
-        TenantProvisionedEvent event = deserialize(
+        TenantProvisionedEvent event = kafkaEventDeserializer.deserialize(
                 record,
                 TenantProvisionedEvent.class
         );
@@ -76,33 +75,6 @@ public class TenantProvisionEventConsumer {
                     e
             );
             throw e; // ErrorHandler -> retry / DLQ
-        }
-    }
-
-    // 공통으로 사용할 것이기에 제네릭 타입으로 구현
-    public <T> T deserialize(
-            ConsumerRecord<String, String> record,
-            Class<T> tClass
-    ) {
-        try {
-            return objectMapper.readValue(
-                    record.value(),
-                    tClass
-            );
-        } catch (JsonProcessingException exception) {
-            log.error(
-                    "Kafka 이벤트 역직렬화 실패. topic={}, partition={}, offset={}, key={}",
-                    record.topic(),
-                    record.partition(),
-                    record.offset(),
-                    record.key(),
-                    exception
-            );
-
-            throw new IllegalArgumentException(
-                    tClass.getSimpleName() + " 역직렬화 실패",
-                    exception
-            );
         }
     }
 }

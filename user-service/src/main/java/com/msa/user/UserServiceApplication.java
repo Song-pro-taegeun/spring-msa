@@ -4,8 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+@EnableCaching
 @EnableScheduling
 @SpringBootApplication(
         // 패키지가 현재 com.msa.user / com.msa.tenant로 구성되어 있기에 서비스 시작 시 스캔 범위를 com.msa로 확장한다.

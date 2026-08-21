@@ -2,11 +2,13 @@ package com.msa.order.service.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.dto.CommonRequestProvisionReplayDlqDto;
+import com.msa.common.kafka_event.TenantProductSnapshotEvent;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.order.entity.dlq.DlqMessageEntity;
 import com.msa.order.entity.dlq.DlqStatus;
 import com.msa.order.repository.dlq.DlqMessageRepository;
 import com.msa.order.service.dlq.DlqReplayStatusService;
+import com.msa.order.service.order.OrderProductSnapshotSyncService;
 import com.msa.order.service.order.TenantSchemaService;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
@@ -19,6 +21,7 @@ public class AdminService {
 
     private final TenantSchemaService tenantSchemaService;
     private final DlqReplayStatusService dlqReplayStatusService;
+    private final OrderProductSnapshotSyncService orderProductSnapshotSyncService;
 
     private final ObjectMapper objectMapper;
 
@@ -29,19 +32,9 @@ public class AdminService {
      * DLQ 상태 변경은 별도 서비스에서 REQUIRES_NEW 트랜잭션으로 즉시 커밋
      * 이렇게 하면 provision 실패로 예외가 발생해도 FAILED 상태 기록은 롤백되지 않도록 처리
      */
+    // 프로비져닝 DLQ 재시도
     public String replayProvisionDlq(CommonRequestProvisionReplayDlqDto inData){
-        String topic = inData.topic();
-        Integer partition = inData.partition();
-        Long offset = inData.offset();
-
-        DlqMessageEntity dlqMessageEntity = dlqMessageRepository.findByOriginalTopicAndOriginalPartitionAndOriginalOffset(
-                topic,
-                partition,
-                offset
-        ).orElseThrow(() -> new ResourceNotFoundException(
-                "DLQ provision row not found. topic=%s, partition=%d, offset=%d"
-                        .formatted(topic, partition, offset)
-        ));
+        DlqMessageEntity dlqMessageEntity = findDlqMessageEntity(inData);
 
         // 재처리 중 단계 기록
         int updated = dlqReplayStatusService.markReplaying(dlqMessageEntity.getId());
@@ -66,5 +59,39 @@ public class AdminService {
             dlqReplayStatusService.markFailed(dlqMessageEntity.getId());
             throw new IllegalStateException("DLQ replay failed", e);
         }
+    }
+
+    // 스냅샷 DLQ 재시도
+    public String replayProductSnapshotDlq(CommonRequestProvisionReplayDlqDto inData){
+        DlqMessageEntity dlqMessageEntity = findDlqMessageEntity(inData);
+
+        int updated = dlqReplayStatusService.markReplaying(dlqMessageEntity.getId());
+        if (updated == 0) {
+            return "DLQ 재처리 실패(이미 처리 중이거나 완료된 이벤트)";
+        }
+        try {
+            TenantProductSnapshotEvent event = objectMapper.readValue(
+                    dlqMessageEntity.getPayloadJson(),
+                    TenantProductSnapshotEvent.class
+            );
+            orderProductSnapshotSyncService.createProductSnapshot(event);
+            dlqReplayStatusService.markReplayed(dlqMessageEntity.getId());
+            return "DLQ 재처리 완료. 이벤트 상태 = " + DlqStatus.REPLAYED;
+        } catch (Exception e) {
+            dlqReplayStatusService.markFailed(dlqMessageEntity.getId());
+            throw new IllegalStateException("DLQ replay failed", e);
+        }
+    }
+
+    public DlqMessageEntity findDlqMessageEntity(CommonRequestProvisionReplayDlqDto inData){
+        String topic = inData.topic();
+        Integer partition = inData.partition();
+        Long offset = inData.offset();
+
+        return dlqMessageRepository.findByOriginalTopicAndOriginalPartitionAndOriginalOffset(topic, partition, offset)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "DLQ row not found. topic=%s, partition=%d, offset=%d"
+                                .formatted(topic, partition, offset)
+        ));
     }
 }

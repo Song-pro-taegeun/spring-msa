@@ -29,19 +29,9 @@ public class AdminService {
      * DLQ 상태 변경은 별도 서비스에서 REQUIRES_NEW 트랜잭션으로 즉시 커밋
      * 이렇게 하면 provision 실패로 예외가 발생해도 FAILED 상태 기록은 롤백되지 않도록 처리
      */
+    // 프로비져닝 DLQ 재시도
     public String replayProvisionDlq(CommonRequestProvisionReplayDlqDto inData){
-        String topic = inData.topic();
-        Integer partition = inData.partition();
-        Long offset = inData.offset();
-
-        DlqMessageEntity dlqMessageEntity = dlqMessageRepository.findByOriginalTopicAndOriginalPartitionAndOriginalOffset(
-                topic,
-                partition,
-                offset
-        ).orElseThrow(() -> new ResourceNotFoundException(
-                "DLQ provision row not found. topic=%s, partition=%d, offset=%d"
-                        .formatted(topic, partition, offset)
-        ));
+        DlqMessageEntity dlqMessageEntity = findDlqMessageEntity(inData);
 
         // 재처리 중 단계 기록
         int updated = dlqReplayStatusService.markReplaying(dlqMessageEntity.getId());
@@ -66,5 +56,17 @@ public class AdminService {
             dlqReplayStatusService.markFailed(dlqMessageEntity.getId());
             throw new IllegalStateException("DLQ replay failed", e);
         }
+    }
+
+    public DlqMessageEntity findDlqMessageEntity(CommonRequestProvisionReplayDlqDto inData){
+        String topic = inData.topic();
+        Integer partition = inData.partition();
+        Long offset = inData.offset();
+
+        return dlqMessageRepository.findByOriginalTopicAndOriginalPartitionAndOriginalOffset(topic, partition, offset)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "DLQ row not found. topic=%s, partition=%d, offset=%d"
+                                .formatted(topic, partition, offset)
+                ));
     }
 }

@@ -41,12 +41,10 @@ public class ProductSnapshotEventConsumer {
                 return;
             }
 
-//            int a = 1/0;
             orderProductSnapshotSyncService.createProductSnapshot(event);
-//            int a = 1/0;
             ack.acknowledge();
         } catch (Exception e) {
-            log.error("TenantProductSnapshot 처리 실패. topic={}, partition={}, offset={}, key={}",
+            log.error("OrderService - ProductSnapshot 처리 실패. topic={}, partition={}, offset={}, key={}",
                     record.topic(),
                     record.partition(),
                     record.offset(),

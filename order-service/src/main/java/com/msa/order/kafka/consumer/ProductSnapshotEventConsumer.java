@@ -1,6 +1,6 @@
 package com.msa.order.kafka.consumer;
 
-import com.msa.common.kafka_event.TenantProductSnapshotEvent;
+import com.msa.common.kafka_event.ProductSnapshotEvent;
 import com.msa.order.service.order.OrderProductSnapshotSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +29,9 @@ public class ProductSnapshotEventConsumer {
             Acknowledgment ack // 수동 offset 커밋용 객체(Config에서 AckMode.MANUAL 설정일 때만 주입 됨)
     ) {
         // kafka value 역직렬화 체크
-        TenantProductSnapshotEvent event = tenantProvisionEventConsumer.deserialize(
+        ProductSnapshotEvent event = tenantProvisionEventConsumer.deserialize(
                 record,
-                TenantProductSnapshotEvent.class
+                ProductSnapshotEvent.class
         );
 
         try {

@@ -11,10 +11,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TenantProductSnapshotEvent {
+public class ProductSnapshotEvent {
     private String eventId;
     private EventType eventType;
     private String serviceName;
 
-    private List<TenantProductSnapshotPayload> payloads;
+    private List<ProductSnapshotPayload> payloads;
 }

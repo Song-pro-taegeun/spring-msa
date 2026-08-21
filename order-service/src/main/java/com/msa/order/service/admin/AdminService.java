@@ -2,7 +2,7 @@ package com.msa.order.service.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msa.common.dto.CommonRequestProvisionReplayDlqDto;
-import com.msa.common.kafka_event.TenantProductSnapshotEvent;
+import com.msa.common.kafka_event.ProductSnapshotEvent;
 import com.msa.common.kafka_event.TenantProvisionedEvent;
 import com.msa.order.entity.dlq.DlqMessageEntity;
 import com.msa.order.entity.dlq.DlqStatus;
@@ -70,9 +70,9 @@ public class AdminService {
             return "DLQ 재처리 실패(이미 처리 중이거나 완료된 이벤트)";
         }
         try {
-            TenantProductSnapshotEvent event = objectMapper.readValue(
+            ProductSnapshotEvent event = objectMapper.readValue(
                     dlqMessageEntity.getPayloadJson(),
-                    TenantProductSnapshotEvent.class
+                    ProductSnapshotEvent.class
             );
             orderProductSnapshotSyncService.createProductSnapshot(event);
             dlqReplayStatusService.markReplayed(dlqMessageEntity.getId());

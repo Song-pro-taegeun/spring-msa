@@ -52,7 +52,6 @@ public class OutboxPublisher {
     }
 
     private void publish(OutboxEvent outboxEvent) {
-        int a = 1/0;
         // 1. Kafka 발행
         kafkaTemplate.send(
                 outboxEvent.getTopic(),

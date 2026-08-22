@@ -23,6 +23,21 @@ spring:
   base-datasource:
     url: "jdbc:mariadb://localhost:3306/"
   base-schema-name: msa_order
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      connect-timeout: 2s
+      timeout: 2s
+  cache:
+    type: redis
+    redis:
+      time-to-live: 10m
+      cache-null-values: false
+      key-prefix: "order-service:"
+      use-key-prefix: true
 
 kafka:
   host-port: "localhost:9092"

@@ -30,4 +30,8 @@ dependencies {
 
     // Caffeine 고성능 인메모리 캐시 라이브러리
     implementation 'com.github.ben-manes.caffeine:caffeine:3.2.4'
+
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
 }

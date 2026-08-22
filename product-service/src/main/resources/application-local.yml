@@ -19,6 +19,21 @@ spring:
     username: "root"
     password: "1234"
     driver-class-name: org.mariadb.jdbc.Driver
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      connect-timeout: 2s
+      timeout: 2s
+  cache:
+    type: redis
+    redis:
+      time-to-live: 10m
+      cache-null-values: false
+      key-prefix: "product-service:"
+      use-key-prefix: true
 
 kafka:
   host-port: "localhost:9092"

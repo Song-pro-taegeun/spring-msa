@@ -13,11 +13,14 @@ import com.msa.product.entity.outbox.OutboxEvent;
 import com.msa.product.entity.product.ProductInventory;
 import com.msa.product.entity.product.ProductOption;
 import com.msa.product.entity.product.Products;
+import com.msa.product.event.internal.InventoryInitializedEvent;
+import com.msa.product.event.internal.InventoryItem;
 import com.msa.product.repository.outbox.OutboxEventRepository;
 import com.msa.product.repository.product.ProductInventoryRepository;
 import com.msa.product.repository.product.ProductOptionRepository;
 import com.msa.product.repository.product.ProductsRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +30,7 @@ import java.util.*;
 @RequiredArgsConstructor
 @Service
 public class ProductService {
+    private final ApplicationEventPublisher eventPublisher;
     private final ProductsRepository productsRepository;
     private final ProductOptionRepository productOptionRepository;
     private final ProductInventoryRepository productInventoryRepository;
@@ -34,6 +38,11 @@ public class ProductService {
 
     private final TenantProductSnapshotProperties productSnapshotProperties;
     private final ObjectMapper objectMapper;
+
+    private record ProductOptionInventoryCreationResult(
+            List<ProductOption> options,
+            List<ProductInventory> inventories
+    ) {}
 
     @Transactional
     public void createProduct(RequestProductDto requestProductDto){
@@ -45,7 +54,9 @@ public class ProductService {
         Products createProductResult = saveProduct(requestProductDto, userId);
 
         // 2. 제품 옵션 및 인벤토리 생성
-        List<ProductOption> createProductOptions = saveProductOptionAndInventory(createProductResult, requestProductDto);
+        ProductOptionInventoryCreationResult creationOptionInventoryResult =
+                saveProductOptionAndInventory(createProductResult, requestProductDto);
+        List<ProductOption> createProductOptions = creationOptionInventoryResult.options();
 
         // 3. 제품 옵션 데이터 normalize
         List<ProductNormalize> productNormalizeList = productNormalizeProcess(createProductResult, createProductOptions);
@@ -99,6 +110,26 @@ public class ProductService {
                             .build()
             );
         }
+
+        // 5. redis 상품 적재 이벤트 리스너 발행
+        publishInventoryInitializationEvent(creationOptionInventoryResult);
+    }
+
+    private void publishInventoryInitializationEvent(ProductOptionInventoryCreationResult creationOptionInventoryResult){
+        List<InventoryItem> items = creationOptionInventoryResult.inventories()
+                .stream()
+                .map(inventory -> {
+                    ProductOption option = inventory.getProductOption();
+
+                    return new InventoryItem(
+                            option.getProductOptionId(),
+                            inventory.getTotalQuantity(),
+                            option.getUpdateVersion()
+                    );
+                })
+                .toList();
+
+        eventPublisher.publishEvent(new InventoryInitializedEvent(items));
     }
 
     private Products saveProduct(RequestProductDto requestProductDto, String userId){
@@ -112,7 +143,7 @@ public class ProductService {
         return productsRepository.save(products);
     }
 
-    private List<ProductOption> saveProductOptionAndInventory(Products product, RequestProductDto requestProductDto){
+    private ProductOptionInventoryCreationResult saveProductOptionAndInventory(Products product, RequestProductDto requestProductDto){
         List<ProductOption> options = new ArrayList<>();
         List<ProductInventory> inventories = new ArrayList<>();
 
@@ -135,8 +166,7 @@ public class ProductService {
 
         productOptionRepository.saveAll(options);
         productInventoryRepository.saveAll(inventories);
-
-        return options;
+        return new ProductOptionInventoryCreationResult(options, inventories);
     }
 
     private List<ProductNormalize> productNormalizeProcess(Products product, List<ProductOption> productOptions){

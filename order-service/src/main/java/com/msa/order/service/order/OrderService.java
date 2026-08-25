@@ -22,21 +22,28 @@ public class OrderService {
 
     private final UsersRepository usersRepository;
     private final StringRedisTemplate redisTemplate;
-    private final RedisScript<List> reserveInventoryScript;
     private final OrdersRepository ordersRepository;
+
+    private final RedisScript<List> reserveInventoryScript;
+    private final RedisScript<Long> compensateInventoryScript;
 
     public OrderService(
             UsersRepository usersRepository,
             StringRedisTemplate redisTemplate,
+            OrdersRepository ordersRepository,
 
             @Qualifier("reserveInventoryScript")
             RedisScript<List> reserveInventoryScript,
-            OrdersRepository ordersRepository
+
+            @Qualifier("compensateInventoryScript")
+            RedisScript<Long> compensateInventoryScript
     ){
         this.usersRepository = usersRepository;
         this.redisTemplate = redisTemplate;
-        this.reserveInventoryScript = reserveInventoryScript;
         this.ordersRepository = ordersRepository;
+
+        this.reserveInventoryScript = reserveInventoryScript;
+        this.compensateInventoryScript = compensateInventoryScript;
     }
 
     public String getMe(){
@@ -50,7 +57,6 @@ public class OrderService {
         return user.getUserId();
     }
 
-    @Transactional
     public void purchaseProduct(OrderRequestPurchaseDto orderRequestPurchaseDto){
         Long productOptionId = orderRequestPurchaseDto.getProductOptionId();
         String key = INVENTORY_KEY_PREFIX + productOptionId;
@@ -63,10 +69,32 @@ public class OrderService {
         try {
             createOrder(productOptionId, reserveResult, orderRequestPurchaseDto);
         } catch (RuntimeException e) {
-            // TODO: 저장 실패 시 보상 트랜잭션 발행 필요@@@@@
-
+            try{
+                compensateInventory(
+                        key,
+                        orderRequestPurchaseDto.getQuantity(), // 요청 수량 = 복구 수량
+                        reserveResult.updateVersion() // 선점 당시 업데이트 버전
+                );
+            } catch (RuntimeException ex) {
+                // 프로세스 exception 구축 후 적재 또는 slack 알림 등으로 추가
+            }
             throw e;
         }
+    }
+
+    private void compensateInventory(String key, Integer quantity, long updateVersion){
+        Long result = redisTemplate.execute(
+                compensateInventoryScript,
+                List.of(key),
+                String.valueOf(quantity),
+                String.valueOf(updateVersion)
+        );
+
+       if(result == -1){
+           throw new IllegalStateException("Order service:재고 보상 트랜잭션 - 버전 불일치로 인한 업데이트 보상 트랜잭션 실패 key:" + key
+                   + ", quantity: " + quantity + ", updateVersion: " + updateVersion
+           );
+       }
     }
 
     // redis 재고 선점
@@ -109,6 +137,7 @@ public class OrderService {
     }
 
     // 주문 생성
+    @Transactional
     private void createOrder(Long productOptionId, InventoryReserveResult reserveResult, OrderRequestPurchaseDto orderRequestPurchaseDto){
         // a. 컨텍스트에서 유저 정보 가져오기
         String userId = SecurityContextHolder.getContext()

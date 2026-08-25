@@ -23,6 +23,15 @@ public class RedisScriptConfig {
         );
     }
 
+    // redis 재고 보상 script Bean
+    @Bean
+    public RedisScript<Long> compensateInventoryScript() {
+        return createScript(
+                "redis/scripts/compensate_inventoryScript.lua",
+                Long.class
+        );
+    }
+
     private <T> RedisScript<T> createScript(
             String path,
             Class<T> resultType

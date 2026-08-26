@@ -2,17 +2,15 @@ package com.msa.order.service.order;
 
 import com.msa.order.domain.redis.InventoryReserveResult;
 import com.msa.order.dto.OrderRequestPurchaseDto;
-import com.msa.order.entity.order.Orders;
 import com.msa.order.entity.order.Users;
-import com.msa.order.repository.order.OrdersRepository;
 import com.msa.order.repository.order.UsersRepository;
+import com.msa.order.service.exception.OrderExceptionService;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,30 +18,36 @@ import java.util.List;
 public class OrderService {
     private static final String INVENTORY_KEY_PREFIX = "shared:product-service:inventory:product-option:";
 
+    private final OrderExceptionService orderExceptionService;
     private final UsersRepository usersRepository;
     private final StringRedisTemplate redisTemplate;
-    private final OrdersRepository ordersRepository;
 
     private final RedisScript<List> reserveInventoryScript;
     private final RedisScript<Long> compensateInventoryScript;
 
+    private final OrderCommandService orderCommandService;
+
     public OrderService(
+            OrderExceptionService orderExceptionService,
             UsersRepository usersRepository,
             StringRedisTemplate redisTemplate,
-            OrdersRepository ordersRepository,
 
             @Qualifier("reserveInventoryScript")
             RedisScript<List> reserveInventoryScript,
 
             @Qualifier("compensateInventoryScript")
-            RedisScript<Long> compensateInventoryScript
+            RedisScript<Long> compensateInventoryScript,
+
+            OrderCommandService orderCommandService
     ){
+        this.orderExceptionService = orderExceptionService;
         this.usersRepository = usersRepository;
         this.redisTemplate = redisTemplate;
-        this.ordersRepository = ordersRepository;
 
         this.reserveInventoryScript = reserveInventoryScript;
         this.compensateInventoryScript = compensateInventoryScript;
+
+        this.orderCommandService = orderCommandService;
     }
 
     public String getMe(){
@@ -67,16 +71,18 @@ public class OrderService {
 
         // 2. 주문 / 주문 아이템 생성
         try {
-            createOrder(productOptionId, reserveResult, orderRequestPurchaseDto);
+            orderCommandService.createOrder(productOptionId, reserveResult, orderRequestPurchaseDto);
         } catch (RuntimeException e) {
             try{
+                // redis 재고 보상 수행
                 compensateInventory(
                         key,
                         orderRequestPurchaseDto.getQuantity(), // 요청 수량 = 복구 수량
                         reserveResult.updateVersion() // 선점 당시 업데이트 버전
                 );
             } catch (RuntimeException ex) {
-                // 프로세스 exception 구축 후 적재 또는 slack 알림 등으로 추가
+                // 시스템 익셉션 로깅
+                orderExceptionService.recordException("OrderService.compensateInventory", ex, orderRequestPurchaseDto);
             }
             throw e;
         }
@@ -134,32 +140,5 @@ public class OrderService {
                         remainingQuantity,
                         updateVersion
                 );
-    }
-
-    // 주문 생성
-    @Transactional
-    private void createOrder(Long productOptionId, InventoryReserveResult reserveResult, OrderRequestPurchaseDto orderRequestPurchaseDto){
-        // a. 컨텍스트에서 유저 정보 가져오기
-        String userId = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-        Users user = usersRepository.findById(userId).orElseThrow(() ->
-                new ResourceNotFoundException("유저를 찾을 수 없습니다: " + userId));
-
-        // b. 스냅샷에서 제품 정보 가져오기
-        if (!orderRequestPurchaseDto.getRequestUpdateVersion().equals(reserveResult.updateVersion())) {
-            throw new IllegalStateException("Order service:재고선점 - Redis 재고 버전과 요청 버전이 일치하지 않습니다.");
-        }
-
-        Orders order = Orders.create(user); // 주문 생성
-        order.addItem(
-                productOptionId,
-                orderRequestPurchaseDto.getQuantity(),
-                orderRequestPurchaseDto.getUnitPrice(),
-                orderRequestPurchaseDto.getCurrency(),
-                reserveResult.updateVersion()
-        ); // 주문 아이템 생성
-
-        ordersRepository.save(order);
     }
 }

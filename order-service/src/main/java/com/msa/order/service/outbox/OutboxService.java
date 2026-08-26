@@ -1,8 +1,8 @@
 package com.msa.order.service.outbox;
 
-import com.msa.order.entity.outbox.OutboxEvent;
+import com.msa.order.entity.master.outbox.OutboxEvent;
 import com.msa.common.entity.OutboxStatus;
-import com.msa.order.repository.outbox.OutboxEventRepository;
+import com.msa.order.repository.master.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,10 @@ public class OutboxService {
      * - row lock으로 PENDING 이벤트의 동시 선점을 방지
      * - 현재 Publisher가 선점한 이벤트를 PROCESSING으로 변경.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(
+            transactionManager = "masterTransactionManager",
+            propagation = Propagation.REQUIRES_NEW
+    )
     public List<OutboxEvent> claimPendingEvents() {
         // 비관적 락
         List<OutboxEvent> events = outboxEventRepository.findPublishableEvents(LocalDateTime.now());
@@ -41,7 +44,10 @@ public class OutboxService {
     /**
      * 명시적 새로운 트랜잭션 경계 설정: 메시지 발행 성공
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(
+            transactionManager = "masterTransactionManager",
+            propagation = Propagation.REQUIRES_NEW
+    )
     public void markPublished(String eventId) {
         int updatedCount = outboxEventRepository.markPublished(
                 eventId,
@@ -60,7 +66,10 @@ public class OutboxService {
     /**
      * 명시적 새로운 트랜잭션 경계 설정: 재시도 카운트에 따른 pending(Retry) / failed 처리
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(
+            transactionManager = "masterTransactionManager",
+            propagation = Propagation.REQUIRES_NEW
+    )
     public void handlePublishFailure(
             String eventId,
             String errorMessage
@@ -109,7 +118,10 @@ public class OutboxService {
     /**
      * 명시적 새로운 트랜잭션 경계 설정: 메시지 발행 실패
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(
+            transactionManager = "masterTransactionManager",
+            propagation = Propagation.REQUIRES_NEW
+    )
     public void markFailed(
             String eventId,
             String errorMessage

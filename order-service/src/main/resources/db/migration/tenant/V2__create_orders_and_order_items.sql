@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     unit_price        DECIMAL(19, 4) NOT NULL COMMENT '주문 당시 개당 가격',
     total_price       DECIMAL(19, 4) NOT NULL COMMENT '주문 제품 총금액',
     currency          CHAR(3) NOT NULL COMMENT '통화 코드',
+    product_update_version bigint(20) NOT NULL DEFAULT 0 COMMENT '상품 옵션 이벤트 변경 버전',
     PRIMARY KEY (order_item_id),
     CONSTRAINT fk_order_items_order
         FOREIGN KEY (order_id)

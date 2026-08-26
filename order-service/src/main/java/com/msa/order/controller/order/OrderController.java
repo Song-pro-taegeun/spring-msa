@@ -1,5 +1,6 @@
 package com.msa.order.controller.order;
 
+import com.msa.order.dto.OrderRequestPurchaseDto;
 import com.msa.order.service.order.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,13 +23,12 @@ public class OrderController {
     /**
      * 1. 레디스 재고 선점 및 재고 차감
      * 2. Order Service에 주문내역 추가
-     * 3. 아웃박스 테이블에 데이터 적재
-     *
-     * 일단 테스트 용도로 파라메터 없이 만들고
-     * product Service DDL이 완성되면 @RequestBody 데이터 추가
      */
     @PostMapping("/purchaseProduct")
-    public void purchaseProduct(){
-        orderService.purchaseProduct();
+    public ResponseEntity<Void> purchaseProduct(
+            @RequestBody OrderRequestPurchaseDto orderRequestPurchaseDto
+    ){
+        orderService.purchaseProduct(orderRequestPurchaseDto);
+        return ResponseEntity.ok().build();
     }
 }

@@ -1,7 +1,7 @@
 package com.msa.order.service.outbox;
 
 import com.msa.common.entity.OutboxStatus;
-import com.msa.order.repository.outbox.OutboxEventRepository;
+import com.msa.order.repository.master.outbox.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OutboxRetryService {
     private final OutboxEventRepository outboxEventRepository;
 
-    @Transactional
+    @Transactional(transactionManager = "masterTransactionManager")
     public void retry(String eventId){
         // 관리자 A: FAILED 조회
         // 관리자 B: FAILED 조회

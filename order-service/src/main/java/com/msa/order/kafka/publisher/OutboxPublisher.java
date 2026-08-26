@@ -1,6 +1,6 @@
 package com.msa.order.kafka.publisher;
 
-import com.msa.order.entity.outbox.OutboxEvent;
+import com.msa.order.entity.master.outbox.OutboxEvent;
 import com.msa.order.service.outbox.OutboxService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

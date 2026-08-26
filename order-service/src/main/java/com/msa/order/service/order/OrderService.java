@@ -2,10 +2,11 @@ package com.msa.order.service.order;
 
 import com.msa.order.domain.redis.InventoryReserveResult;
 import com.msa.order.dto.OrderRequestPurchaseDto;
-import com.msa.order.entity.order.Users;
-import com.msa.order.repository.order.UsersRepository;
+import com.msa.order.entity.tenant.order.Users;
+import com.msa.order.repository.tenant.order.UsersRepository;
 import com.msa.order.service.exception.OrderExceptionService;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;

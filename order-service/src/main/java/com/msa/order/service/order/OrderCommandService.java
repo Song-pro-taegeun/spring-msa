@@ -2,10 +2,10 @@ package com.msa.order.service.order;
 
 import com.msa.order.domain.redis.InventoryReserveResult;
 import com.msa.order.dto.OrderRequestPurchaseDto;
-import com.msa.order.entity.order.Orders;
-import com.msa.order.entity.order.Users;
-import com.msa.order.repository.order.OrdersRepository;
-import com.msa.order.repository.order.UsersRepository;
+import com.msa.order.entity.tenant.order.Orders;
+import com.msa.order.entity.tenant.order.Users;
+import com.msa.order.repository.tenant.order.OrdersRepository;
+import com.msa.order.repository.tenant.order.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,7 +18,7 @@ public class OrderCommandService {
     private final OrdersRepository ordersRepository;
     private final UsersRepository usersRepository;
 
-    // 주문 생성
+    // 주문 생성 (테넌트 db - 기본 값)
     @Transactional
     public void createOrder(Long productOptionId, InventoryReserveResult reserveResult, OrderRequestPurchaseDto orderRequestPurchaseDto){
         // 컨텍스트에서 유저 정보 가져오기

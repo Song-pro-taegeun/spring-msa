@@ -2,11 +2,10 @@ package com.msa.order.service.exception;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.msa.order.entity.exception.ServiceExceptionLog;
-import com.msa.order.repository.exception.ServiceExceptionLogRepository;
+import com.msa.order.entity.master.exception.ServiceExceptionLog;
+import com.msa.order.repository.master.exception.ServiceExceptionLogRepository;
 import com.msa.tenant.context.TenantContext;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +30,6 @@ public class OrderExceptionService{
     ) {
         ServiceExceptionLog exceptionLog = ServiceExceptionLog.create(
                 TenantContext.get(),
-                MDC.get("traceId"),
                 methodName,
                 exception.getClass().getName(),
                 exception.getMessage(),

@@ -5,10 +5,10 @@ import com.msa.tenant.credential.TenantDbCredentialProvider;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -26,11 +26,10 @@ import java.util.Map;
  */
 @Configuration
 @EnableJpaRepositories(
-        basePackages = "com.msa",
+        basePackages = "com.msa.order.repository.tenant",
         entityManagerFactoryRef = "entityManagerFactory",
         transactionManagerRef = "transactionManager"
 )
-@EntityScan(basePackages = "com.msa")
 public class MultiTenantJpaConfig {
 
     // 멀티테넌트 커넥션 공급자 등록
@@ -60,7 +59,7 @@ public class MultiTenantJpaConfig {
         LocalContainerEntityManagerFactoryBean emf =
                 new LocalContainerEntityManagerFactoryBean();
 
-        emf.setPackagesToScan("com.msa");
+        emf.setPackagesToScan("com.msa.order.entity.tenant");
         emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 
         Map<String, Object> props = new HashMap<>();
@@ -85,9 +84,12 @@ public class MultiTenantJpaConfig {
     // 트랜잭션 시작 순간에 어느 테넌트를 쓸지 결정된다.
     // 기본적으론 Spring 에서 생성해주지만, LocalContainerEntityManagerFactoryBean 를 직접 정의하여 Spring Boot Auto-config 비활성화
     // Spring Boot Auto-config가 비활성화 되었기에 transactionManager 를 직접 등록해야한다.
-    @Bean
+    @Primary    // 기본 값
+    @Bean(name = "transactionManager")
     public PlatformTransactionManager transactionManager(
-            EntityManagerFactory emf) {
+            @Qualifier("entityManagerFactory")
+            EntityManagerFactory emf
+    ) {
         return new JpaTransactionManager(emf);
     }
 }

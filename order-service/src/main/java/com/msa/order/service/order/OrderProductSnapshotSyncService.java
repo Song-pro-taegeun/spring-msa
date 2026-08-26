@@ -2,10 +2,10 @@ package com.msa.order.service.order;
 
 import com.msa.common.kafka_event.ProductSnapshotEvent;
 import com.msa.common.kafka_event.ProductSnapshotPayload;
-import com.msa.order.entity.inbox.InboxEvent;
-import com.msa.order.entity.order.OrderProductSnapshot;
-import com.msa.order.repository.inbox.InboxEventRepository;
-import com.msa.order.repository.order.OrderProductSnapshotRepository;
+import com.msa.order.entity.master.inbox.InboxEvent;
+import com.msa.order.entity.master.order.OrderProductSnapshot;
+import com.msa.order.repository.master.inbox.InboxEventRepository;
+import com.msa.order.repository.master.order.OrderProductSnapshotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ public class OrderProductSnapshotSyncService {
     private final OrderProductSnapshotRepository orderProductSnapshotRepository;
     private final InboxEventRepository inboxEventRepository;
 
-    @Transactional
+    @Transactional(transactionManager = "masterTransactionManager")
     public void createProductSnapshot(ProductSnapshotEvent event){
         // 1. 처리된 이벤트인지 확인(이벤트 멱등성)
         if (inboxEventRepository.existsById(event.getEventId())) {

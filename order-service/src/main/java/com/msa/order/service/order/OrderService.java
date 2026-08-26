@@ -2,11 +2,11 @@ package com.msa.order.service.order;
 
 import com.msa.order.domain.redis.InventoryReserveResult;
 import com.msa.order.dto.OrderRequestPurchaseDto;
+import com.msa.order.entity.master.order.OrderProductSnapshot;
 import com.msa.order.entity.tenant.order.Users;
 import com.msa.order.repository.tenant.order.UsersRepository;
 import com.msa.order.service.exception.OrderExceptionService;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -67,12 +67,14 @@ public class OrderService {
         String key = INVENTORY_KEY_PREFIX + productOptionId;
         Integer requestQuantityValue = orderRequestPurchaseDto.getQuantity();
 
+        // 스냅샷 조회
+        OrderProductSnapshot snapshot = orderCommandService.findProductOption(orderRequestPurchaseDto);
+
         // 1. redis rua 실행
         InventoryReserveResult reserveResult = reserveRedisInventory(key, requestQuantityValue);
-
-        // 2. 주문 / 주문 아이템 생성
         try {
-            orderCommandService.createOrder(productOptionId, reserveResult, orderRequestPurchaseDto);
+            // 2. 주문 / 주문 아이템 생성
+            orderCommandService.createOrder(reserveResult, orderRequestPurchaseDto, snapshot);
         } catch (RuntimeException e) {
             try{
                 // redis 재고 보상 수행

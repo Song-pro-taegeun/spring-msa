@@ -15,7 +15,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "dlq_message_info")
+@Table(
+        name = "dlq_message_info",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_dlq_message_original_topic_partition_offset",
+                columnNames = {"original_topic", "original_partition", "original_offset"}
+        )
+)
 public class DlqMessageEntity {
 
     @Id

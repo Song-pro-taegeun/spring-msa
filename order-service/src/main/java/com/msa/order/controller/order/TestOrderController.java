@@ -4,6 +4,7 @@ import com.msa.order.dto.OrderRequestPurchaseDto;
 import com.msa.order.service.order.TestOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ public class TestOrderController {
     /**
      * 비관적락 재고 감소
      */
+    @PostMapping("/pessimisticLock")
     public ResponseEntity<Boolean> purchaseProductPessimisticLock(
             @RequestBody OrderRequestPurchaseDto orderRequestPurchaseDto
     ){
@@ -26,6 +28,7 @@ public class TestOrderController {
     /**
      * 조건부 업데이트 재고 감소
      */
+    @PostMapping("/conditionalUpdate")
     public ResponseEntity<Boolean> purchaseProductConditionalUpdate(
             @RequestBody OrderRequestPurchaseDto orderRequestPurchaseDto
     ){

@@ -14,6 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @RequiredArgsConstructor
 @Service
 public class OrderCommandService {
@@ -62,5 +64,35 @@ public class OrderCommandService {
         }
 
         return snapshot;
+    }
+
+
+    /**
+     * 임시 - 부하테스트용
+     */
+    @Transactional
+    public void createOrder(InventoryReserveResult reserveResult, OrderRequestPurchaseDto orderRequestPurchaseDto){
+        // 컨텍스트에서 유저 정보 가져오기
+        String userId = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+        Users user = usersRepository.findById(userId).orElseThrow(() ->
+                new ResourceNotFoundException("유저를 찾을 수 없습니다: " + userId));
+
+        // Redis 상품 버전(request 버전과 레디스 버전 확인)
+        if (!orderRequestPurchaseDto.getRequestUpdateVersion().equals(reserveResult.updateVersion())) {
+            throw new IllegalStateException("Order service:재고선점 - Redis 재고 버전과 요청 버전이 일치하지 않습니다.");
+        }
+
+        Orders order = Orders.create(user); // 주문 생성
+        order.addItem(
+                orderRequestPurchaseDto.getProductOptionId(),
+                orderRequestPurchaseDto.getQuantity(),
+                BigDecimal.valueOf(1200),
+                "KRW",
+                reserveResult.updateVersion()
+        ); // 주문 아이템 생성
+
+        ordersRepository.save(order);
     }
 }

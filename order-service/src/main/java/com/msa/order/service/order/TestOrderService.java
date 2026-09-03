@@ -44,11 +44,10 @@ public class TestOrderService {
         // 트랜잭션 종료 시 dirty checking으로 UPDATE 실행
     }
 
-    @Transactional(transactionManager = "masterTransactionManager")
     public boolean decreaseConditionally(OrderRequestPurchaseDto orderRequestPurchaseDto) {
         Long productOptionId = orderRequestPurchaseDto.getProductOptionId();
         int quantity = orderRequestPurchaseDto.getQuantity();
-        int result = repository.decreaseStockConditionally(productOptionId, quantity);
+        int result = orderCommandService.decreaseStockConditionally(productOptionId, quantity);
 
         if(result > 0){
             InventoryReserveResult reserveResult = new InventoryReserveResult(true, quantity, orderRequestPurchaseDto.getRequestUpdateVersion());

@@ -6,6 +6,7 @@ import com.msa.order.entity.master.order.OrderProductSnapshot;
 import com.msa.order.entity.tenant.order.Orders;
 import com.msa.order.entity.tenant.order.Users;
 import com.msa.order.repository.master.order.OrderProductSnapshotRepository;
+import com.msa.order.repository.master.order.TestProductSnapshotRepository;
 import com.msa.order.repository.tenant.order.OrdersRepository;
 import com.msa.order.repository.tenant.order.UsersRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class OrderCommandService {
     private final OrdersRepository ordersRepository;
     private final UsersRepository usersRepository;
     private final OrderProductSnapshotRepository orderProductSnapshotRepository;
+    private final TestProductSnapshotRepository testRepository;
 
     // 주문 생성 (테넌트 db - 기본 값)
     @Transactional
@@ -94,5 +96,13 @@ public class OrderCommandService {
         ); // 주문 아이템 생성
 
         ordersRepository.save(order);
+    }
+
+    /**
+     * 임시 - 부하테스트용
+     */
+    @Transactional(transactionManager = "masterTransactionManager")
+    public int decreaseStockConditionally(Long productOptionId, int quantity){
+        return testRepository.decreaseStockConditionally(productOptionId, quantity);
     }
 }

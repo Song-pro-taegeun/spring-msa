@@ -122,8 +122,11 @@ public class ProductService {
                     ProductOption option = inventory.getProductOption();
 
                     return new InventoryItem(
+                            option.getProducts().getProductId(),
                             option.getProductOptionId(),
                             inventory.getTotalQuantity(),
+                            inventory.getProductOption().getPrice(),
+                            inventory.getProductOption().getCurrency(),
                             option.getUpdateVersion()
                     );
                 })

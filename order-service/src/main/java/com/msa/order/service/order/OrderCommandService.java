@@ -27,7 +27,7 @@ public class OrderCommandService {
 
     // 주문 생성 (테넌트 db - 기본 값)
     @Transactional
-    public void createOrder(InventoryReserveResult reserveResult, OrderRequestPurchaseDto orderRequestPurchaseDto, OrderProductSnapshot snapshot){
+    public void createProductOrder(InventoryReserveResult reserveResult, OrderRequestPurchaseDto orderRequestPurchaseDto){
         // 컨텍스트에서 유저 정보 가져오기
         String userId = SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -42,10 +42,10 @@ public class OrderCommandService {
 
         Orders order = Orders.create(user); // 주문 생성
         order.addItem(
-                snapshot.getProductOptionId(),
+                reserveResult.productOptionId(),
                 orderRequestPurchaseDto.getQuantity(),
-                snapshot.getPrice(),
-                snapshot.getCurrency(),
+                reserveResult.price(),
+                reserveResult.currency(),
                 reserveResult.updateVersion()
         ); // 주문 아이템 생성
 

@@ -32,7 +32,11 @@ public class TestOrderService {
         }
 
         snapshot.decrease(quantity);
-        InventoryReserveResult reserveResult = new InventoryReserveResult(true, quantity, orderRequestPurchaseDto.getRequestUpdateVersion());
+        InventoryReserveResult reserveResult = InventoryReserveResult.builder()
+                .reservable(true)
+                .quantity(quantity)
+                .updateVersion(orderRequestPurchaseDto.getRequestUpdateVersion())
+                .build();
         try {
             // 2. 주문 / 주문 아이템 생성
             orderCommandService.createOrder(reserveResult, orderRequestPurchaseDto);
@@ -50,7 +54,11 @@ public class TestOrderService {
         int result = orderCommandService.decreaseStockConditionally(productOptionId, quantity);
 
         if(result > 0){
-            InventoryReserveResult reserveResult = new InventoryReserveResult(true, quantity, orderRequestPurchaseDto.getRequestUpdateVersion());
+            InventoryReserveResult reserveResult = InventoryReserveResult.builder()
+                    .reservable(true)
+                    .quantity(quantity)
+                    .updateVersion(orderRequestPurchaseDto.getRequestUpdateVersion())
+                    .build();
             try {
                 // 2. 주문 / 주문 아이템 생성
                 orderCommandService.createOrder(reserveResult, orderRequestPurchaseDto);

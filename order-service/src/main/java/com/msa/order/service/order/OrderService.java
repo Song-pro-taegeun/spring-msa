@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -67,14 +69,10 @@ public class OrderService {
         String key = INVENTORY_KEY_PREFIX + productOptionId;
         Integer requestQuantityValue = orderRequestPurchaseDto.getQuantity();
 
-        // 스냅샷 조회
-        OrderProductSnapshot snapshot = orderCommandService.findProductOption(orderRequestPurchaseDto);
-
-        // 1. redis rua 실행
         InventoryReserveResult reserveResult = reserveRedisInventory(key, requestQuantityValue);
         try {
             // 2. 주문 / 주문 아이템 생성
-            orderCommandService.createOrder(reserveResult, orderRequestPurchaseDto, snapshot);
+            orderCommandService.createProductOrder(reserveResult, orderRequestPurchaseDto);
         } catch (RuntimeException e) {
             try{
                 // redis 재고 보상 수행
@@ -86,6 +84,7 @@ public class OrderService {
             } catch (RuntimeException ex) {
                 // 시스템 익셉션 로깅
                 orderExceptionService.recordException("OrderService.compensateInventory", ex, orderRequestPurchaseDto);
+                throw ex;
             }
             throw e;
         }
@@ -117,13 +116,11 @@ public class OrderService {
         );
 
         // 결과가 없거나 3개의 리스트가 아닐 때,
-        if (result == null || result.size() != 3) {
+        if (result == null || result.size() != 7) {
             throw new IllegalStateException("Order service:재고선점 - Redis 재고 처리 결과가 올바르지 않습니다");
         }
 
         long status = ((Number) result.get(0)).longValue();
-        Integer remainingQuantity = Math.toIntExact(((Number) result.get(1)).longValue());
-        long updateVersion = ((Number) result.get(2)).longValue();
 
         switch ((int) status){
             case 1:
@@ -139,9 +136,30 @@ public class OrderService {
         }
 
         return new InventoryReserveResult(
-                status == 1,
-                        remainingQuantity,
-                        updateVersion
-                );
+                true,
+                toLong(result.get(1)),
+                toLong(result.get(2)),
+                Math.toIntExact(toLong(result.get(3))),
+                toLong(result.get(4)),
+                new BigDecimal(String.valueOf(result.get(5))),
+                String.valueOf(result.get(6))
+        );
+    }
+
+    private long toLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+
+        if (value instanceof String string) {
+            return Long.parseLong(string);
+        }
+
+        throw new IllegalStateException(
+                "Redis 값을 Long으로 변환할 수 없습니다. value="
+                        + value
+                        + ", type="
+                        + (value == null ? "null" : value.getClass().getName())
+        );
     }
 }

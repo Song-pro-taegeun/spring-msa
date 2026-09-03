@@ -5,6 +5,10 @@
 -- KEYS[1]: Redis 재고 키
 -- ARGV[1]: quantity
 -- ARGV[2]: updateVersion
+-- ARGV[3]: productId
+-- ARGV[4]: productOptionId
+-- ARGV[5]: price
+-- ARGV[6]: currency
 
 -- redis.call('HGET', key, field)
     -- HGET key field
@@ -33,7 +37,11 @@ redis.call(
     'HSET',
     KEYS[1],
     'quantity', ARGV[1],
-    'updateVersion', ARGV[2]
+    'updateVersion', ARGV[2],
+    'productId', ARGV[3],
+    'productOptionId', ARGV[4],
+    'price', ARGV[5],
+    'currency', ARGV[6]
 )
 
 return 1 -- 신규 등록 또는 최신 버전으로 갱신

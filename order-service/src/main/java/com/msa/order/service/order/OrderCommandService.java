@@ -52,23 +52,6 @@ public class OrderCommandService {
         ordersRepository.save(order);
     }
 
-    @Transactional(
-            transactionManager = "masterTransactionManager",
-            readOnly = true
-    )
-    public OrderProductSnapshot findProductOption(OrderRequestPurchaseDto orderRequestPurchaseDto) {
-        OrderProductSnapshot snapshot = orderProductSnapshotRepository.findById(orderRequestPurchaseDto.getProductOptionId())
-                .orElseThrow(() -> new ResourceNotFoundException("상품 스냅샷이 없습니다: " + orderRequestPurchaseDto.getProductOptionId()));
-
-        // 요청 당시 클라이언트가 확인했던 버전(request 버전과 스냅샷 버전 확인)
-        if (!orderRequestPurchaseDto.getRequestUpdateVersion().equals(snapshot.getUpdateVersion())) {
-            throw new IllegalStateException("Order service:재고선점 - 스냅샷 재고 버전과 요청 버전이 일치하지 않습니다.");
-        }
-
-        return snapshot;
-    }
-
-
     /**
      * 임시 - 부하테스트용
      */

@@ -69,7 +69,7 @@ public class OrderService {
         String key = INVENTORY_KEY_PREFIX + productOptionId;
         Integer requestQuantityValue = orderRequestPurchaseDto.getQuantity();
 
-        InventoryReserveResult reserveResult = reserveRedisInventory(key, requestQuantityValue);
+        InventoryReserveResult reserveResult = reserveRedisInventory(key, orderRequestPurchaseDto);
         try {
             // 2. 주문 / 주문 아이템 생성
             orderCommandService.createProductOrder(reserveResult, orderRequestPurchaseDto);
@@ -106,13 +106,14 @@ public class OrderService {
     }
 
     // redis 재고 선점
-    private InventoryReserveResult reserveRedisInventory(String key, Integer requestQuantityValue){
+    private InventoryReserveResult reserveRedisInventory(String key, OrderRequestPurchaseDto orderRequestPurchaseDto){
         // 결과 값
-        // result[0] 상태값: -2(잘못된 요청) / -1(상품재고 또는 버전의 값이 없음) / 0(재고 부족) / 1(재고 선점)
+        // result[0] 상태값: -3(버전 불일치)/ -2(잘못된 요청) / -1(상품재고 또는 버전의 값이 없음) / 0(재고 부족) / 1(재고 선점)
         List<?> result = redisTemplate.execute(
                 reserveInventoryScript,
                 List.of(key),
-                String.valueOf(requestQuantityValue)
+                String.valueOf(orderRequestPurchaseDto.getQuantity()),
+                String.valueOf(orderRequestPurchaseDto.getRequestUpdateVersion())
         );
 
         // 결과가 없거나 3개의 리스트가 아닐 때,
@@ -130,7 +131,9 @@ public class OrderService {
             case -1:
                 throw new IllegalStateException("Order service:재고선점 - 상품재고 또는 버전의 값이 없습니다.");
             case -2:
-                throw new IllegalStateException("Order service:재고선점 - 요청 수량이 잘못되었습니다.");
+                throw new IllegalStateException("Order service:재고선점 - 요청 수량 또는 버전이 잘못되었습니다.");
+            case -3:
+                throw new IllegalStateException("Order service:재고선점 - 요청 버전이 재고 버전과 다릅니다.");
             default:
                 throw new IllegalStateException("Order service:재고선점 - 알 수 없는 Redis 처리 상태입니다: " + status);
         }

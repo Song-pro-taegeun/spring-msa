@@ -9,21 +9,62 @@ import {
   standardThresholds,
 } from './common/order-test-common.js';
 
-// 2분 동안 총 TPS를 500까지 단계적으로 높여 처리량 한계를 찾는다.
+
 const RAMP_START_TPS = integerEnv('RAMP_START_TPS', 50, 0);
+
+// // 2분 동안 총 TPS를 500까지 단계적으로 높여 처리량 한계를 찾는다.
+// const RAMP_STAGES = stagesEnv('RAMP_STAGES', [
+//   { duration: '10s', target: 100 },
+//   { duration: '10s', target: 100 },
+//   { duration: '10s', target: 200 },
+//   { duration: '10s', target: 200 },
+//   { duration: '10s', target: 300 },
+//   { duration: '10s', target: 300 },
+//   { duration: '10s', target: 400 },
+//   { duration: '10s', target: 400 },
+//   { duration: '10s', target: 500 },
+//   { duration: '10s', target: 500 },
+//   { duration: '20s', target: 0 },
+// ]);
+
+// TPS 700
 const RAMP_STAGES = stagesEnv('RAMP_STAGES', [
-  { duration: '10s', target: 100 },
-  { duration: '10s', target: 100 },
-  { duration: '10s', target: 200 },
-  { duration: '10s', target: 200 },
-  { duration: '10s', target: 300 },
-  { duration: '10s', target: 300 },
-  { duration: '10s', target: 400 },
-  { duration: '10s', target: 400 },
   { duration: '10s', target: 500 },
   { duration: '10s', target: 500 },
+  { duration: '10s', target: 600 },
+  { duration: '10s', target: 600 },
+  { duration: '10s', target: 650 },
+  { duration: '10s', target: 650 },
+  { duration: '10s', target: 700 },
+  { duration: '30s', target: 700 },
   { duration: '20s', target: 0 },
 ]);
+
+// // TPS 800
+// const RAMP_STAGES = stagesEnv('RAMP_STAGES', [
+//   { duration: '10s', target: 500 },
+//   { duration: '10s', target: 500 },
+//   { duration: '10s', target: 600 },
+//   { duration: '10s', target: 600 },
+//   { duration: '10s', target: 700 },
+//   { duration: '10s', target: 700 },
+//   { duration: '10s', target: 800 },
+//   { duration: '30s', target: 800 },
+//   { duration: '20s', target: 0 },
+// ]);
+
+// // TPS 1000
+// const RAMP_STAGES = stagesEnv('RAMP_STAGES', [
+//   { duration: '10s', target: 250 },
+//   { duration: '10s', target: 250 },
+//   { duration: '10s', target: 500 },
+//   { duration: '10s', target: 500 },
+//   { duration: '10s', target: 750 },
+//   { duration: '10s', target: 750 },
+//   { duration: '10s', target: 1000 },
+//   { duration: '30s', target: 1000 },
+//   { duration: '20s', target: 0 },
+// ]);
 
 export const options = {
   discardResponseBodies: false,

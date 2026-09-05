@@ -35,7 +35,15 @@ const ENDPOINT_CATALOG = Object.freeze({
   purchase: Object.freeze({
     name: 'purchase-product',
     path: '/order/purchaseProduct',
-    productOptionId: integerEnv('PURCHASE_PRODUCT_OPTION_ID', 39, 1),
+    productOptionId: integerEnv('PURCHASE_PRODUCT_OPTION_ID', 40, 1),
+    quantity: integerEnv('PURCHASE_QUANTITY', 1, 1),
+    requestUpdateVersion: integerEnv('PURCHASE_VERSION', 1, 1),
+    booleanResponse: false,
+  }),
+  redis_purchase: Object.freeze({
+    name: 'redis-only-purchase-product',
+    path: '/order/purchaseProduct/redisOnly',
+    productOptionId: integerEnv('PURCHASE_PRODUCT_OPTION_ID', 41, 1),
     quantity: integerEnv('PURCHASE_QUANTITY', 1, 1),
     requestUpdateVersion: integerEnv('PURCHASE_VERSION', 1, 1),
     booleanResponse: false,
@@ -52,7 +60,10 @@ const REQUEST_HEADERS = Object.freeze({
 const businessFailures = new Rate('business_failures');
 const businessSuccesses = new Counter('business_successes');
 
-const SAFE_TPS = integerEnv('SAFE_TPS', 500, 1);
+// const SAFE_TPS = integerEnv('SAFE_TPS', 500, 1);
+const SAFE_TPS = integerEnv('SAFE_TPS', 700, 1);
+// const SAFE_TPS = integerEnv('SAFE_TPS', 800, 1);
+// const SAFE_TPS = integerEnv('SAFE_TPS', 1000, 1);
 const SPIKE_TPS = integerEnv('SPIKE_TPS', 5000, 1);
 const P95_MS = integerEnv('P95_MS', 500, 1);
 const MAX_ERROR_RATE = numberEnv('MAX_ERROR_RATE', 0.01, 0, 1);
@@ -410,21 +421,28 @@ function selectEndpoints(rawValue) {
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
+
+  const availableNames = Object.keys(ENDPOINT_CATALOG);
+
   const names = requested.includes('all')
-    ? Object.keys(ENDPOINT_CATALOG)
+    ? availableNames
     : [...new Set(requested)];
 
   if (names.length === 0) {
-    throw new Error('ENDPOINTS must contain pessimistic, conditional, purchase, or all.');
+    throw new Error(
+      `ENDPOINTS must contain ${availableNames.join(', ')}, or all.`,
+    );
   }
 
   return names.map((name) => {
     const endpoint = ENDPOINT_CATALOG[name];
+
     if (!endpoint) {
       throw new Error(
-        `Unknown endpoint '${name}'. Use pessimistic, conditional, purchase, or all.`,
+        `Unknown endpoint '${name}'. Use ${availableNames.join(', ')}, or all.`,
       );
     }
+
     return endpoint;
   });
 }

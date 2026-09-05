@@ -32,7 +32,11 @@ public class TestOrderService {
         }
 
         snapshot.decrease(quantity);
-        InventoryReserveResult reserveResult = new InventoryReserveResult(true, quantity, orderRequestPurchaseDto.getRequestUpdateVersion());
+        InventoryReserveResult reserveResult = InventoryReserveResult.builder()
+                .reservable(true)
+                .quantity(quantity)
+                .updateVersion(orderRequestPurchaseDto.getRequestUpdateVersion())
+                .build();
         try {
             // 2. 주문 / 주문 아이템 생성
             orderCommandService.createOrder(reserveResult, orderRequestPurchaseDto);
@@ -44,14 +48,17 @@ public class TestOrderService {
         // 트랜잭션 종료 시 dirty checking으로 UPDATE 실행
     }
 
-    @Transactional(transactionManager = "masterTransactionManager")
     public boolean decreaseConditionally(OrderRequestPurchaseDto orderRequestPurchaseDto) {
         Long productOptionId = orderRequestPurchaseDto.getProductOptionId();
         int quantity = orderRequestPurchaseDto.getQuantity();
-        int result = repository.decreaseStockConditionally(productOptionId, quantity);
+        int result = orderCommandService.decreaseStockConditionally(productOptionId, quantity);
 
         if(result > 0){
-            InventoryReserveResult reserveResult = new InventoryReserveResult(true, quantity, orderRequestPurchaseDto.getRequestUpdateVersion());
+            InventoryReserveResult reserveResult = InventoryReserveResult.builder()
+                    .reservable(true)
+                    .quantity(quantity)
+                    .updateVersion(orderRequestPurchaseDto.getRequestUpdateVersion())
+                    .build();
             try {
                 // 2. 주문 / 주문 아이템 생성
                 orderCommandService.createOrder(reserveResult, orderRequestPurchaseDto);

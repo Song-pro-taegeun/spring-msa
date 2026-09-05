@@ -45,7 +45,12 @@ public class InventoryRedisService {
                         initializeInventoryScript,
                         List.of(key), // KEY
                         String.valueOf(item.quantity()), // ARGV[1]
-                        String.valueOf(item.updateVersion()) // ARGV[2]
+                        String.valueOf(item.updateVersion()), // ARGV[2]
+                        String.valueOf(item.productId()), // ARGV[3]
+                        String.valueOf(item.productOptionId()), // ARGV[4]
+                        item.price().toPlainString(), // ARGV[5]
+                        String.valueOf(item.currency()) // ARGV[6]
+
                 );
 
                 if (Long.valueOf(1L).equals(result)) {

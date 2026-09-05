@@ -14,7 +14,7 @@ import java.util.List;
 @Configuration
 public class RedisScriptConfig {
 
-    // redis 재고 초기화 script Bean
+    // redis 재고 감소 script Bean
     @Bean
     public RedisScript<List> reserveInventoryScript() {
         return createScript(
@@ -29,6 +29,15 @@ public class RedisScriptConfig {
         return createScript(
                 "redis/scripts/compensate_inventoryScript.lua",
                 Long.class
+        );
+    }
+
+    // redis 재고감소 + 주문 + 원장 + 에빈트 멱등성 기록 등 script Bean(Only Redis)
+    @Bean
+    public RedisScript<List> acceptRedisOrderScript() {
+        return createScript(
+                "redis/scripts/order_accept.lua",
+                List.class
         );
     }
 

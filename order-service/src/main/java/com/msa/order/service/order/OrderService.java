@@ -1,21 +1,22 @@
 package com.msa.order.service.order;
 
 import com.msa.order.domain.redis.InventoryReserveResult;
+import com.msa.order.dto.OrderAcceptedResponse;
 import com.msa.order.dto.OrderRequestPurchaseDto;
-import com.msa.order.entity.master.order.OrderProductSnapshot;
 import com.msa.order.entity.tenant.order.Users;
 import com.msa.order.repository.tenant.order.UsersRepository;
 import com.msa.order.service.exception.OrderExceptionService;
+import com.msa.tenant.context.TenantContext;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class OrderService {
@@ -27,6 +28,7 @@ public class OrderService {
 
     private final RedisScript<List> reserveInventoryScript;
     private final RedisScript<Long> compensateInventoryScript;
+    private final RedisScript<List> acceptRedisOrderScript;
 
     private final OrderCommandService orderCommandService;
 
@@ -41,6 +43,9 @@ public class OrderService {
             @Qualifier("compensateInventoryScript")
             RedisScript<Long> compensateInventoryScript,
 
+            @Qualifier("acceptRedisOrderScript")
+            RedisScript<List> acceptRedisOrderScript,
+
             OrderCommandService orderCommandService
     ){
         this.orderExceptionService = orderExceptionService;
@@ -49,6 +54,7 @@ public class OrderService {
 
         this.reserveInventoryScript = reserveInventoryScript;
         this.compensateInventoryScript = compensateInventoryScript;
+        this.acceptRedisOrderScript = acceptRedisOrderScript;
 
         this.orderCommandService = orderCommandService;
     }
@@ -147,6 +153,85 @@ public class OrderService {
                 new BigDecimal(String.valueOf(result.get(5))),
                 String.valueOf(result.get(6))
         );
+    }
+
+    // 레디스 전용 주문처리 서비스 로직
+    public OrderAcceptedResponse redisOnlyPurchaseProduct(OrderRequestPurchaseDto request) {
+        Long productOptionId = request.getProductOptionId();
+        String inventoryKey = INVENTORY_KEY_PREFIX + productOptionId;
+
+        String tenantKey = TenantContext.get();
+
+        // redis hash 및 stream에서 사용
+        String userId = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        // 주문 접수 이벤트 식별자(멱등성을 위한 eventId)
+        String eventId = UUID.randomUUID().toString();
+        long acceptedAt = System.currentTimeMillis();
+
+        // redis + lua 주문 처리
+        reserveRedisOrder(inventoryKey, request, eventId, tenantKey, userId, acceptedAt);
+        return new OrderAcceptedResponse(eventId, "ACCEPTED");
+    }
+
+    private void reserveRedisOrder(
+            String inventoryKey,
+            OrderRequestPurchaseDto request,
+            String eventId,
+            String tenantKey,
+            String userId,
+            long acceptedAt
+    ) {
+        // redis 자료구조 키
+        Long productOptionId = request.getProductOptionId();
+        String orderKeyPrefix = "order:product-option:" + productOptionId;
+
+        String eventKey = orderKeyPrefix + ":events";
+        String ledgerKey = orderKeyPrefix + ":ledger";
+        String streamKey = orderKeyPrefix + ":stream";
+
+        // redis 재고감소 + 주문 + 원장 + 에빈트 멱등성 기록 등 원자 스크립트 실행
+        List<?> result = redisTemplate.execute(
+                acceptRedisOrderScript,
+                List.of(
+                        inventoryKey,
+                        eventKey,
+                        ledgerKey,
+                        streamKey
+                ),
+                String.valueOf(request.getQuantity()),
+                String.valueOf(request.getRequestUpdateVersion()),
+                eventId,
+                tenantKey,
+                userId,
+                String.valueOf(acceptedAt)
+        );
+
+        if (result == null || result.isEmpty()) {
+            throw new IllegalStateException("Order service - redis only: Redis 주문 접수 결과가 없습니다.");
+        }
+
+        long status = toLong(result.get(0));
+        switch ((int) status) {
+            case 1: // 신규 주문 접수 성공
+                return;
+            case 2: // 동일 eventId가 이미 처리됨
+                return;
+            case 0:
+                throw new IllegalStateException("Order service - redis only: 재고가 부족합니다.");
+            case -1:
+                throw new IllegalStateException("Order service - redis only: Redis 상품 정보가 없거나 정상적으로 등록되지 않은 상품입니다.");
+            case -2:
+                throw new IllegalStateException("Order service - redis only: 주문 요청값이 잘못되었습니다.");
+            case -3:
+                throw new IllegalStateException("Order service - redis only: 상품 버전이 일치하지 않습니다.");
+            case -4:
+                throw new IllegalStateException("Order service - redis only: Redis 데이터 형식이 잘못되었습니다.");
+            default:
+                throw new IllegalStateException("Order service - redis only: 알 수 없는 Redis 처리 상태입니다: " + status);
+        }
     }
 
     private long toLong(Object value) {

@@ -36,3 +36,18 @@ spring:
 
   flyway:
     enabled: false # 어플리케이션 부팅 시 Flyway 자동실행 막기
+
+order:
+  redis-stream:
+    key: "order:accepted:stream"
+    group: "order-db-writer"
+    poll-timeout: 1s
+    batch-size: 10
+    consumer-count: 16
+
+# Actuator + Micrometer 설정 파일(처리 속도 파악용도)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics

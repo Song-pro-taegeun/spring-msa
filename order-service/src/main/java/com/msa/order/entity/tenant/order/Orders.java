@@ -16,6 +16,12 @@ import java.util.List;
 @Entity
 @Table(
         name = "orders",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_orders_event_id",
+                        columnNames = "event_id"
+                )
+        },
         indexes = {
                 @Index(name = "idx_orders_user_id", columnList = "user_id"),
                 @Index(name = "idx_orders_ordered_at", columnList = "ordered_at"),
@@ -31,6 +37,9 @@ public class Orders {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id", nullable = false)
     private Long orderId;
+
+    @Column(name = "event_id", nullable = false, unique = true)
+    private String eventId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
@@ -56,17 +65,22 @@ public class Orders {
     @Getter(AccessLevel.NONE)
     private List<OrderItems> orderItems = new ArrayList<>();
 
-    private Orders(Users user) {
+    private Orders(String eventId, Users user) {
+        this.eventId = eventId;
         this.user = user;
         this.orderStatus = OrderStatus.CREATED;
     }
 
-    public static Orders create(Users user) {
+    public static Orders create(String eventId, Users user) {
+        if (eventId == null || eventId.isBlank()) {
+            throw new IllegalArgumentException("주문 이벤트 ID는 필수입니다.");
+        }
+
         if (user == null) {
             throw new IllegalArgumentException("주문 사용자는 필수입니다.");
         }
 
-        return new Orders(user);
+        return new Orders(eventId, user);
     }
 
     public OrderItems addItem(

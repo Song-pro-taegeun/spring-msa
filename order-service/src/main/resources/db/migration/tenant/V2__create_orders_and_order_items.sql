@@ -1,9 +1,12 @@
 CREATE TABLE IF NOT EXISTS orders (
     order_id       BIGINT NOT NULL AUTO_INCREMENT COMMENT '주문 ID',
+    event_id       VARCHAR(36) NOT NULL COMMENT '주문 접수 이벤트 ID',
     user_id        VARCHAR(50) NOT NULL COMMENT '주문 사용자 ID',
     order_status   VARCHAR(30) NOT NULL COMMENT '주문 상태',
     ordered_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '주문 일시',
     PRIMARY KEY (order_id),
+    CONSTRAINT uk_orders_event_id
+        UNIQUE (event_id),
     CONSTRAINT fk_orders_user
         FOREIGN KEY (user_id)
         REFERENCES users (user_id),

@@ -1,6 +1,7 @@
 package com.msa.order.service.order;
 
 import com.msa.order.domain.redis.InventoryReserveResult;
+import com.msa.order.config.OrderRedisStreamProperties;
 import com.msa.order.dto.OrderAcceptedResponse;
 import com.msa.order.dto.OrderRequestPurchaseDto;
 import com.msa.order.entity.tenant.order.Users;
@@ -31,6 +32,7 @@ public class OrderService {
     private final RedisScript<List> acceptRedisOrderScript;
 
     private final OrderCommandService orderCommandService;
+    private final OrderRedisStreamProperties orderRedisStreamProperties;
 
     public OrderService(
             OrderExceptionService orderExceptionService,
@@ -46,7 +48,8 @@ public class OrderService {
             @Qualifier("acceptRedisOrderScript")
             RedisScript<List> acceptRedisOrderScript,
 
-            OrderCommandService orderCommandService
+            OrderCommandService orderCommandService,
+            OrderRedisStreamProperties orderRedisStreamProperties
     ){
         this.orderExceptionService = orderExceptionService;
         this.usersRepository = usersRepository;
@@ -57,6 +60,7 @@ public class OrderService {
         this.acceptRedisOrderScript = acceptRedisOrderScript;
 
         this.orderCommandService = orderCommandService;
+        this.orderRedisStreamProperties = orderRedisStreamProperties;
     }
 
     public String getMe(){
@@ -190,7 +194,7 @@ public class OrderService {
 
         String eventKey = orderKeyPrefix + ":events";
         String ledgerKey = orderKeyPrefix + ":ledger";
-        String streamKey = orderKeyPrefix + ":stream";
+        String streamKey = orderRedisStreamProperties.getKey();
 
         // redis 재고감소 + 주문 + 원장 + 에빈트 멱등성 기록 등 원자 스크립트 실행
         List<?> result = redisTemplate.execute(

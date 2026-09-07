@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OrdersRepository extends JpaRepository<Orders, Long> {
+    boolean existsByEventId(String eventId);
 }

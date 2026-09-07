@@ -40,7 +40,7 @@ public class OrderCommandService {
             throw new IllegalStateException("Order service:재고선점 - Redis 재고 버전과 요청 버전이 일치하지 않습니다.");
         }
 
-        Orders order = Orders.create(user); // 주문 생성
+        Orders order = Orders.create("주문 당 동기로직으로 직접 넣은ID", user); // 주문 생성
         order.addItem(
                 reserveResult.productOptionId(),
                 orderRequestPurchaseDto.getQuantity(),
@@ -69,7 +69,7 @@ public class OrderCommandService {
             throw new IllegalStateException("Order service:재고선점 - Redis 재고 버전과 요청 버전이 일치하지 않습니다.");
         }
 
-        Orders order = Orders.create(user); // 주문 생성
+        Orders order = Orders.create("주문 당 동기로직으로 직접 넣은ID", user); // 주문 생성
         order.addItem(
                 orderRequestPurchaseDto.getProductOptionId(),
                 orderRequestPurchaseDto.getQuantity(),

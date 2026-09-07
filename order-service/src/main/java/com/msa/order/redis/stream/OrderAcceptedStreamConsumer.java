@@ -3,23 +3,46 @@ package com.msa.order.redis.stream;
 import com.msa.order.config.OrderRedisStreamProperties;
 import com.msa.order.service.order.OrderStreamCommandService;
 import com.msa.tenant.context.TenantContext;
-import lombok.RequiredArgsConstructor;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.core.instrument.Timer;
+
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class OrderAcceptedStreamConsumer implements StreamListener<String, MapRecord<String, String, String>> {
     private final OrderStreamCommandService orderStreamCommandService;
     private final StringRedisTemplate redisTemplate;
     private final OrderRedisStreamProperties properties;
 
+    // 시간체크 용도
+    private final MeterRegistry meterRegistry;
+    private final Timer consumerTotalTimer;
+
+    public OrderAcceptedStreamConsumer(
+            OrderStreamCommandService orderStreamCommandService,
+            StringRedisTemplate redisTemplate,
+            OrderRedisStreamProperties properties,
+            MeterRegistry meterRegistry
+    ) {
+        this.orderStreamCommandService = orderStreamCommandService;
+        this.redisTemplate = redisTemplate;
+        this.properties = properties;
+        this.meterRegistry = meterRegistry;
+
+        this.consumerTotalTimer = Timer.builder("order.stream.consumer.total")
+                .description("주문 Consumer 전체 처리시간")
+                .publishPercentileHistogram()
+                .register(meterRegistry);
+    }
+
     @Override
     public void onMessage(MapRecord<String, String, String> record) {
+        Timer.Sample totalSample = Timer.start(meterRegistry);
         String eventId = record.getValue().get("eventId");
 
         try {
@@ -57,6 +80,7 @@ public class OrderAcceptedStreamConsumer implements StreamListener<String, MapRe
             );
         } finally {
             TenantContext.clear();
+            totalSample.stop(consumerTotalTimer);
         }
     }
 }

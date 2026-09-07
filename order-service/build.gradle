@@ -34,4 +34,7 @@ dependencies {
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Actuator + Micrometer 기본 지표(프로세스 처리 시간 파악용도)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }

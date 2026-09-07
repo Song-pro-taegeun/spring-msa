@@ -26,12 +26,13 @@ import java.util.UUID;
 public class OrderRedisStreamConfig {
 
     @Bean
-    public ThreadPoolTaskExecutor orderRedisStreamTaskExecutor() {
+    public ThreadPoolTaskExecutor orderRedisStreamTaskExecutor(OrderRedisStreamProperties properties) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        // 현재 구독하는 Redis Stream이 하나이므로, 하나의 전용 스레드만으로도 polling부터 DB 저장과 XACK까지 순차적으로 처리
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(1);
+        // Consumer 수와 동일한 개수의 전용 스레드를 구성한다.
+        // consumer-count가 16이면 Consumer 16개가 각각 polling, DB 저장, XACK을 담당한다.
+        executor.setCorePoolSize(properties.getConsumerCount());
+        executor.setMaxPoolSize(properties.getConsumerCount());
         executor.setQueueCapacity(0);
         executor.setThreadNamePrefix("order-stream-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
@@ -62,24 +63,26 @@ public class OrderRedisStreamConfig {
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(connectionFactory, options);
 
-        // stream이 N개일 떄 receive() 로 추가 등록
-        // 실제 Stream 구독 등록
-        String consumerName = "order-db-writer-" + UUID.randomUUID();
-        container.receive(
-                Consumer.from(properties.getGroup(), consumerName),
-                StreamOffset.create(
-                        properties.getKey(),
-                        ReadOffset.lastConsumed() // Consumer Group이 다음 메시지를 읽도록
-                ),
-                consumer
-        );
+        // 같은 Consumer Group에 고유한 이름의 Consumer를 consumerCount만큼 등록
+        String instanceId = UUID.randomUUID().toString();
+        for (int index = 1; index <= properties.getConsumerCount(); index++) {
+            String consumerName = properties.getGroup() + "-" + instanceId + "-" + index;
+            container.receive(
+                    Consumer.from(properties.getGroup(), consumerName),
+                    StreamOffset.create(
+                            properties.getKey(),
+                            ReadOffset.lastConsumed() // Consumer Group이 다음 메시지를 읽도록
+                    ),
+                    consumer
+            );
 
-        log.info(
-                "Redis 주문 Stream Consumer 등록. stream={}, group={}, consumer={}",
-                properties.getKey(),
-                properties.getGroup(),
-                consumerName
-        );
+            log.info(
+                    "Redis 주문 Stream Consumer 등록. stream={}, group={}, consumer={}",
+                    properties.getKey(),
+                    properties.getGroup(),
+                    consumerName
+            );
+        }
 
         return container;
     }

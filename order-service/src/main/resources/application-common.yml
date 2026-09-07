@@ -43,6 +43,7 @@ order:
     group: "order-db-writer"
     poll-timeout: 1s
     batch-size: 10
+    consumer-count: 16
 
 # Actuator + Micrometer 설정 파일(처리 속도 파악용도)
 management:

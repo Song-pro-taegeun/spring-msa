@@ -261,6 +261,14 @@ curl -i -X POST \
 | Order | `POST` | `/admin/dlq-events/replay/provision` | Admin | 프로비저닝 DLQ 재처리 |
 | Order | `POST` | `/admin/dlq-events/replay/product-snapshot` | Admin | 상품 스냅샷 DLQ 재처리 |
 
+## 문제 해결 사례
+
+### 1. Redis Lua + Stream으로 주문 접수 성능 개선
+
+동기 주문 API의 DB 저장 대기를 Redis Lua 기반 접수와 Redis Stream 비동기 저장으로 분리했다. 동일한 700 TPS Ramp-up 스케줄에서 p95 응답시간을 `7.37초`에서 `14.61ms`로 줄이고, Dropped Iteration을 `4,819건`에서 `0건`으로 개선했다.
+
+- [문제 상황, 대안 비교, 구현, 실패 시나리오와 측정 결과](docs/case-studies/01-redis-lua-stream-order-performance.md)
+
 ## 부하테스트
 
 주문 부하 테스트는 [load-tests/k6/README.md](load-tests/k6/README.md)에 실행 방법, 환경 변수, SLO, 측정 결과가 정리되어 있다.

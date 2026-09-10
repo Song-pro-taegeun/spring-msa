@@ -40,8 +40,9 @@ public class DlqPersistConsumer {
             // 역직렬화 후 DB 저장
             DlqMessage<String> dlq = deserialize(record.value());
 
-            // 오류 발생 시 msa_order 스키마에 DLQ 메시지 적재
-            TenantContext.set(baseSchemaName);
+            // bean으로 분리하여 지워도 됨
+            // // 오류 발생 시 msa_order 스키마에 DLQ 메시지 적재
+            // TenantContext.set(baseSchemaName);
 
             // DB에 DLQ 정보 등록
             dlqService.persistDlq(dlq, record);

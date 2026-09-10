@@ -269,6 +269,18 @@ curl -i -X POST \
 
 - [문제 상황, 대안 비교, 구현, 실패 시나리오와 측정 결과](docs/case-studies/01-redis-lua-stream-order-performance.md)
 
+### 2. 멀티테넌트 DB 커넥션 풀 고갈 해결
+
+테넌트마다 기본 크기 10의 HikariCP가 제한 없이 생성돼 MariaDB의 연결 한도 151개가 고갈되는 문제를 분석했다. Master Pool 30개, 테넌트 전용 Pool 75개, 프로비저닝·배치 25개, 운영 여유 21개로 예산을 나누고 테넌트별 풀 크기를 1로 제한했다.
+
+- [커넥션 증가 원인, 대안 비교, 연결 예산과 현재 한계](docs/case-studies/02-multi-tenant-connection-pool-exhaustion.md)
+
+### 3. 멀티테넌트 환경에서 테넌트 위변조와 잘못된 DB 라우팅 방지
+
+JWT의 `tenantKey`와 `X-Tenant-Id`를 교차 검증하고 요청 범위에서 `TenantContext`를 관리했다. Order Service는 Tenant와 Master Repository를 서로 다른 `EntityManagerFactory`와 `TransactionManager`에 연결해 Context 변경 없이 올바른 Schema를 선택하도록 구성했다.
+
+- [테넌트 생성과 할당, 요청 검증, Master/Tenant DB 라우팅 분리](docs/case-studies/03-multi-tenant-routing-security.md)
+
 ## 부하테스트
 
 주문 부하 테스트는 [load-tests/k6/README.md](load-tests/k6/README.md)에 실행 방법, 환경 변수, SLO, 측정 결과가 정리되어 있다.
